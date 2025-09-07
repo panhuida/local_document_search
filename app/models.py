@@ -16,8 +16,8 @@ class Document(db.Model):
     markdown_content = Column(Text)
     is_converted = Column(Integer)  # 0-直接存储，1-文本转Markdown，2-代码转Markdown，3-结构化转Markdown，4-转换失败
     search_vector = Column(TSVECTOR)
-    created_at = Column(TIMESTAMP, default=func.now())
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         Index('idx_documents_file_path', 'file_path', unique=True),
@@ -31,5 +31,5 @@ class ConversionError(db.Model):
     file_name = Column(String(200), nullable=False)
     file_path = Column(Text, nullable=False)
     error_message = Column(Text)
-    created_at = Column(TIMESTAMP, default=func.now())
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())

@@ -20,7 +20,7 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-4">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Document Search</h1>
+            <h1 class="text-3xl font-bold text-gray-800">文档搜索</h1>
             <a href="/process" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm">文档处理与导入 &rarr;</a>
         </div>
         
@@ -81,7 +81,7 @@
                             resultEl.className = 'bg-white p-4 rounded-lg shadow';
                             
                             const fileSize = result.filesize > 1024*1024 ? `${(result.filesize/(1024*1024)).toFixed(2)} MB` : `${(result.filesize/1024).toFixed(2)} KB`;
-                            const modifiedDate = new Date(result.file_modified_time).toLocaleString();
+                            const modifiedDate = result.file_modified_time.replace('T', ' ').replace('Z', '');
 
                             resultEl.innerHTML = `
                                 <h3 class="text-lg font-semibold text-blue-600 cursor-pointer hover:underline" onclick="previewMarkdown(${result.id}, '${result.filename}')" title="Click to preview content">
@@ -93,7 +93,7 @@
                                     </a>
                                 </p>
                                 <p class="text-sm text-gray-600 mt-2">${result.snippet}</p>
-                                <div class="text-xs text-gray-500 mt-2"><b>Modified:</b> ${modifiedDate} | <b>Size:</b> ${fileSize} | <b>Type:</b> ${result.filetype}</div>
+                                <div class="text-xs text-gray-500 mt-2"><b>文件修改时间:</b> ${modifiedDate} | <b>文件大小:</b> ${fileSize} | <b>文件类型:</b> ${result.filetype}</div>
                             `;
                             resultsContainer.appendChild(resultEl);
                         });
