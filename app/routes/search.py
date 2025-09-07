@@ -2,11 +2,50 @@ import os
 import sys
 import subprocess
 import time
+import re
 from flask import Blueprint, request, jsonify, current_app
 from app.services.search_service import search_documents
 import markdown
 
 bp = Blueprint('search', __name__, url_prefix='/api')
+
+def create_highlighted_snippet(content, keyword, length=200):
+    if not content or not keyword:
+        return (content or '')[:length]
+
+    try:
+        # Case-insensitive search for the keyword
+        match = re.search(keyword, content, re.IGNORECASE)
+        if not match:
+            return content[:length] + '...'
+
+        start_pos = match.start()
+        
+        # Calculate snippet start and end, trying to center the keyword
+        snippet_start = max(0, start_pos - length // 2)
+        snippet_end = min(len(content), start_pos + len(keyword) + length // 2)
+
+        # Adjust if we are near the beginning or end of the content
+        if snippet_start == 0:
+            snippet_end = min(len(content), length)
+        if snippet_end == len(content):
+            snippet_start = max(0, len(content) - length)
+
+        snippet = content[snippet_start:snippet_end]
+
+        # Add ellipses if the snippet is not at the start/end of the document
+        if snippet_start > 0:
+            snippet = "..." + snippet
+        if snippet_end < len(content):
+            snippet = snippet + "..."
+
+        # Highlight all occurrences of the keyword in the snippet
+        highlighted_snippet = re.sub(f'({re.escape(keyword)})', r'<mark>\1</mark>', snippet, flags=re.IGNORECASE)
+        return highlighted_snippet
+
+    except Exception:
+        return (content or '')[:length] # Fallback
+
 
 @bp.route('/search', methods=['GET'])
 def search_route():
@@ -32,6 +71,7 @@ def search_route():
 
     results = []
     for doc in pagination.items:
+        snippet = create_highlighted_snippet(doc.markdown_content, keyword)
         results.append({
             'id': doc.id,
             'filename': doc.file_name,
@@ -39,7 +79,7 @@ def search_route():
             'filetype': doc.file_type,
             'filesize': doc.file_size,
             'file_modified_time': doc.file_modified_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'snippet': doc.snippet
+            'snippet': snippet
         })
 
     return jsonify({
