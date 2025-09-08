@@ -16,7 +16,12 @@
     <div class="bg-white p-6 rounded-lg shadow-md">
         <div class="mb-4">
             <label for="folder_path" class="block text-sm font-medium text-gray-700">文件夹路径</label>
-            <input type="text" id="folder_path" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            <div class="mt-1 flex rounded-md shadow-sm">
+                <input type="text" id="folder_path" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="请选择或输入文件夹路径">
+                <button id="browse_button" type="button" class="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <span>浏览</span>
+                </button>
+            </div>
         </div>
 
         <div class="mb-4">
@@ -56,6 +61,19 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('browse_button').addEventListener('click', function() {
+            fetch('/api/browse-folder')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.folder_path) {
+                        document.getElementById('folder_path').value = data.folder_path;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching folder path:', error);
+                    alert('无法打开文件夹选择对话框。请确保后端服务正在运行。');
+                });
+        });
         const fileTypesContainer = document.getElementById('file-types');
         fetch('/api/config/file-types')
             .then(response => response.json())

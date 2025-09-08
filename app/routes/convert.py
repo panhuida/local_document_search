@@ -1,5 +1,7 @@
 import os
 import time
+import tkinter as tk
+from tkinter import filedialog
 from flask import Blueprint, request, jsonify, current_app
 from app.services.file_scanner import scan_folder
 from app.services.converter import convert_to_markdown
@@ -9,6 +11,24 @@ from app.extensions import db
 from sqlalchemy import func
 
 bp = Blueprint('convert', __name__, url_prefix='/api')
+
+@bp.route('/browse-folder', methods=['GET'])
+def browse_folder():
+    """
+    Opens a dialog for the user to select a folder.
+    Returns the selected folder path.
+    """
+    try:
+        root = tk.Tk()
+        root.withdraw()  # Hide the main tkinter window
+        # Make the dialog appear on top of other windows
+        root.attributes('-topmost', True)
+        folder_path = filedialog.askdirectory(master=root)
+        return jsonify({'status': 'success', 'folder_path': folder_path})
+    except Exception as e:
+        # Log the error and return a generic error message
+        current_app.logger.error(f"Error opening folder dialog: {e}")
+        return jsonify({'status': 'error', 'message': 'Could not open folder dialog.'}), 500
 
 @bp.route('/scan-folder', methods=['POST'])
 def scan_folder_route():
