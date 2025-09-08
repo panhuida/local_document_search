@@ -1,171 +1,207 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Process Documents</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-<div class="container mx-auto p-4">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">文档处理与导入</h1>
-        <div>
-            <a href="{{ url_for('main.errors_page') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm mr-4">查看错误记录</a>
-            <a href="{{ url_for('main.search_page') }}" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm">搜索页面</a>
+{% extends 'base.html' %}
+
+{% block title %}Process Documents{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <h1 class="text-3xl font-bold text-slate-900">Process & Import Documents</h1>
+
+    <!-- Settings Card -->
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+            <h2 class="text-xl font-semibold">Scan Settings</h2>
+            <p class="text-sm text-slate-500 mt-1">Configure the folder path and filters for document processing.</p>
+        </div>
+        <div class="p-6 space-y-6">
+            <!-- Folder Path -->
+            <div>
+                <label for="folder_path" class="block text-sm font-medium text-slate-700 mb-1">Folder Path</label>
+                <div class="flex rounded-md shadow-sm">
+                    <input type="text" id="folder_path" class="flex-1 block w-full rounded-none rounded-l-md border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Select or input a folder path">
+                    <button id="browse_button" type="button" class="relative -ml-px inline-flex items-center space-x-2 px-4 py-2 border border-slate-300 text-sm font-medium rounded-r-md text-slate-700 bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                        <svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                        </svg>
+                        <span>Browse</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Recursive Scan -->
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="recursive" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300 rounded" checked>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="recursive" class="font-medium text-slate-700">Recursive Scan</label>
+                        <p class="text-slate-500">Scan all subdirectories within the path.</p>
+                    </div>
+                </div>
+                <!-- Date From -->
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-slate-700">Modified After</label>
+                    <input type="date" id="date_from" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <!-- Date To -->
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-slate-700">Modified Before</label>
+                    <input type="date" id="date_to" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <!-- File Types -->
+            <div>
+                <h3 class="text-lg font-medium text-slate-800">File Types</h3>
+                <div id="file-types" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            </div>
+        </div>
+        <div class="p-6 bg-slate-50 text-right">
+            <button id="start-scan" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Start Processing
+            </button>
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="mb-4">
-            <label for="folder_path" class="block text-sm font-medium text-gray-700">文件夹路径</label>
-            <div class="mt-1 flex rounded-md shadow-sm">
-                <input type="text" id="folder_path" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="请选择或输入文件夹路径">
-                <button id="browse_button" type="button" class="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    <span>浏览</span>
-                </button>
+    <!-- Results Card -->
+    <div id="results-card" class="bg-white shadow-lg rounded-xl overflow-hidden hidden">
+        <div class="p-6 border-b border-slate-200">
+            <h2 class="text-xl font-semibold">Processing Results</h2>
+        </div>
+        <!-- Progress -->
+        <div id="progress" class="p-6 hidden">
+            <div class="w-full bg-slate-200 rounded-full">
+                <div id="progress-bar" class="bg-indigo-600 text-xs font-medium text-indigo-100 text-center p-0.5 leading-none rounded-full" style="width: 0%">0%</div>
             </div>
+            <div id="progress-text" class="text-sm text-slate-600 mt-2 text-center"></div>
         </div>
-
-        <div class="mb-4">
-            <input type="checkbox" id="recursive" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50" checked>
-            <label for="recursive" class="ml-2 text-sm text-gray-600">递归扫描子文件夹</label>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label for="date_from" class="block text-sm font-medium text-gray-700">开始日期</label>
-                <input type="date" id="date_from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-            </div>
-            <div>
-                <label for="date_to" class="block text-sm font-medium text-gray-700">结束日期</label>
-                <input type="date" id="date_to" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-            </div>
-        </div>
-
-        <div class="mb-4">
-            <h3 class="text-lg font-medium text-gray-800">文件类型设置</h3>
-            <div id="file-types" class="mt-2 space-y-2"></div>
-        </div>
-
-        <button id="start-scan" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">开始处理</button>
-
-        <div id="progress" class="mt-4 hidden">
-            <div class="w-full bg-gray-200 rounded-full">
-                <div id="progress-bar" class="bg-indigo-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full" style="width: 0%">0%</div>
-            </div>
-            <div id="progress-text" class="text-sm text-gray-600 mt-1"></div>
-        </div>
-
-        <div id="summary" class="mt-4 hidden p-4 bg-gray-50 rounded-lg">
+        <!-- Summary -->
+        <div id="summary" class="p-6 hidden">
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('browse_button').addEventListener('click', function() {
-            fetch('/api/browse-folder')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.folder_path) {
-                        document.getElementById('folder_path').value = data.folder_path;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching folder path:', error);
-                    alert('无法打开文件夹选择对话框。请确保后端服务正在运行。');
-                });
-        });
-        const fileTypesContainer = document.getElementById('file-types');
-        fetch('/api/config/file-types')
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    const types = data.data;
-                    for (const category in types) {
-                        if (category.endsWith('_types')) {
-                            const container = document.createElement('div');
-                            const title = document.createElement('h4');
-                            title.className = 'font-semibold';
-                            title.textContent = category.replace(/_/g, ' ').replace('types', ' ');
-                            container.appendChild(title);
-                            types[category].forEach(type => {
-                                const checkbox = document.createElement('input');
-                                checkbox.type = 'checkbox';
-                                checkbox.id = type.ext;
-                                checkbox.value = type.ext;
-                                checkbox.checked = true;
-                                const label = document.createElement('label');
-                                label.htmlFor = type.ext;
-                                label.textContent = ` ${type.name} (.${type.ext})`;
-                                const div = document.createElement('div');
-                                div.appendChild(checkbox);
-                                div.appendChild(label);
-                                container.appendChild(div);
-                            });
-                            fileTypesContainer.appendChild(container);
-                        }
+document.addEventListener('DOMContentLoaded', function() {
+    const fileTypesContainer = document.getElementById('file-types');
+    fetch('/api/config/file-types')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const types = data.data;
+                let html = '';
+                for (const category in types) {
+                    if (category.endsWith('_types')) {
+                        const categoryName = category.replace('_types', '').replace(/_/g, ' ');
+                        html += `<div class="col-span-full font-semibold text-slate-600 text-sm uppercase">${categoryName}</div>`;
+                        types[category].forEach(type => {
+                            html += `
+                            <div class="flex items-center">
+                                <input id="type-${type.ext}" value="${type.ext}" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded" checked>
+                                <label for="type-${type.ext}" class="ml-2 block text-sm text-slate-700">${type.name} (.${type.ext})</label>
+                            </div>
+                            `;
+                        });
                     }
                 }
-            });
+                fileTypesContainer.innerHTML = html;
+            }
+        });
 
-        document.getElementById('start-scan').addEventListener('click', function() {
-            const folderPath = document.getElementById('folder_path').value;
-            const recursive = document.getElementById('recursive').checked;
-            const dateFrom = document.getElementById('date_from').value;
-            const dateTo = document.getElementById('date_to').value;
-            const selectedTypes = Array.from(document.querySelectorAll('#file-types input[type=checkbox]:checked')).map(cb => cb.value);
-
-            const progress = document.getElementById('progress');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const summary = document.getElementById('summary');
-
-            progress.classList.remove('hidden');
-            progressBar.style.width = '0%';
-            progressBar.textContent = '0%';
-            progressText.textContent = 'Starting scan...';
-            summary.classList.add('hidden');
-
-            fetch('/api/scan-folder', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    folder_path: folderPath,
-                    recursive: recursive,
-                    date_from: dateFrom,
-                    date_to: dateTo,
-                    file_types: selectedTypes.join(',')
-                })
-            })
+    document.getElementById('browse_button').addEventListener('click', function() {
+        fetch('/api/browse-folder')
             .then(response => response.json())
             .then(data => {
-                progress.classList.add('hidden');
-                summary.classList.remove('hidden');
-                if (data.status === 'success') {
-                    const scanSummary = data.data.scan_summary;
-                    summary.innerHTML = `
-                        <h3 class="font-bold">Scan Complete</h3>
-                        <p>Total files: ${scanSummary.total_files}</p>
-                        <p>Processed files: ${scanSummary.processed_files}</p>
-                        <p>Skipped files: ${scanSummary.skipped_files}</p>
-                        <p>Error files: ${scanSummary.error_files}</p>
-                        <p>Processing time: ${data.data.processing_time}</p>
-                    `;
-                } else {
-                    summary.innerHTML = `<p class="text-red-500">Error: ${data.message}</p>`;
+                if (data.folder_path) {
+                    document.getElementById('folder_path').value = data.folder_path;
                 }
             })
             .catch(error => {
-                progress.classList.add('hidden');
-                summary.classList.remove('hidden');
-                summary.innerHTML = `<p class="text-red-500">Error: ${error}</p>`;
+                console.error('Error fetching folder path:', error);
+                alert('Could not open folder dialog. Make sure the backend service is running.');
             });
+    });
+
+    document.getElementById('start-scan').addEventListener('click', function() {
+        const folderPath = document.getElementById('folder_path').value;
+        const recursive = document.getElementById('recursive').checked;
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        const selectedTypes = Array.from(document.querySelectorAll('#file-types input[type=checkbox]:checked')).map(cb => cb.value);
+
+        const resultsCard = document.getElementById('results-card');
+        const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const summary = document.getElementById('summary');
+
+        resultsCard.classList.remove('hidden');
+        progress.classList.remove('hidden');
+        summary.classList.add('hidden');
+        
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        progressText.textContent = 'Starting scan...';
+
+        // Simulate progress for better UX
+        let progressValue = 0;
+        progressBar.style.width = '5%';
+        progressBar.textContent = '5%';
+        progressText.textContent = 'Scanning files...';
+
+
+        fetch('/api/scan-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                folder_path: folderPath,
+                recursive: recursive,
+                date_from: dateFrom,
+                date_to: dateTo,
+                file_types: selectedTypes.join(',')
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            progress.classList.add('hidden');
+            summary.classList.remove('hidden');
+            if (data.status === 'success') {
+                const scanSummary = data.data.scan_summary;
+                summary.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-slate-800">${scanSummary.total_files}</div>
+                            <div class="text-sm text-slate-500">Total Files</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-green-600">${scanSummary.processed_files}</div>
+                            <div class="text-sm text-slate-500">Processed</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-yellow-600">${scanSummary.skipped_files}</div>
+                            <div class="text-sm text-slate-500">Skipped</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-red-600">${scanSummary.error_files}</div>
+                            <div class="text-sm text-slate-500">Errors</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-slate-800">${data.data.processing_time}</div>
+                            <div class="text-sm text-slate-500">Time Taken</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                summary.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg"><p><span class="font-bold">Error:</span> ${data.message}</p></div>`;
+            }
+        })
+        .catch(error => {
+            progress.classList.add('hidden');
+            summary.classList.remove('hidden');
+            summary.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg"><p><span class="font-bold">Error:</span> ${error}</p></div>`;
         });
     });
+});
 </script>
-</body>
-</html>
+{% endblock %}
