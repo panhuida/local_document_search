@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Local Document Search{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f3f4f6; } /* gray-100 */
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; } /* gray-400 */
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; } /* gray-500 */
 
         #sidebar {
             transition: width 0.3s ease-in-out;
@@ -35,32 +43,32 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <aside id="sidebar" class="bg-slate-800 text-white flex flex-col">
-            <div class="flex items-center justify-center p-6 text-2xl font-bold border-b border-slate-700 h-20">
+        <aside id="sidebar" class="bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex flex-col">
+            <div class="flex items-center justify-center p-6 text-2xl font-bold border-b border-gray-200 dark:border-gray-700 h-20">
                 <a href="{{ url_for('main.index') }}" class="flex items-center">
-                    <svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                    <span class="sidebar-brand-text">DocuSearch</span>
+                    <svg class="w-8 h-8 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    <span class="sidebar-brand-text text-blue-600">DocuSearch</span>
                 </a>
             </div>
             <nav class="flex-1 p-4 space-y-2">
-                <a href="{{ url_for('main.search_page') }}" class="sidebar-link flex items-center px-4 py-2 rounded-lg hover:bg-slate-700 {% if request.endpoint == 'main.search_page' or request.endpoint == 'main.index' %}bg-slate-900{% endif %}">
+                <a href="{{ url_for('main.search_page') }}" class="sidebar-link flex items-center px-4 py-2 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.endpoint == 'main.search_page' or request.endpoint == 'main.index' %}bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-white{% else %}text-gray-600 dark:text-gray-300{% endif %}">
                     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     <span class="sidebar-text">Search</span>
                 </a>
-                <a href="{{ url_for('main.convert_page') }}" class="sidebar-link flex items-center px-4 py-2 rounded-lg hover:bg-slate-700 {% if request.endpoint == 'main.convert_page' %}bg-slate-900{% endif %}">
+                <a href="{{ url_for('main.convert_page') }}" class="sidebar-link flex items-center px-4 py-2 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.endpoint == 'main.convert_page' %}bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-white{% else %}text-gray-600 dark:text-gray-300{% endif %}">
                     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1h16v-1M4 12h16M4 8h16"></path></svg>
                     <span class="sidebar-text">Process Documents</span>
                 </a>
-                <a href="{{ url_for('main.errors_page') }}" class="sidebar-link flex items-center px-4 py-2 rounded-lg hover:bg-slate-700 {% if request.endpoint == 'main.errors_page' %}bg-slate-900{% endif %}">
+                <a href="{{ url_for('main.errors_page') }}" class="sidebar-link flex items-center px-4 py-2 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.endpoint == 'main.errors_page' %}bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-white{% else %}text-gray-600 dark:text-gray-300{% endif %}">
                     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span class="sidebar-text">Error Records</span>
                 </a>
             </nav>
-            <div class="p-4 border-t border-slate-700">
-                <button id="sidebar-toggle" class="sidebar-footer flex items-center w-full py-2 px-4 rounded-lg hover:bg-slate-700">
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <button id="sidebar-toggle" class="sidebar-footer flex items-center w-full py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                     <svg class="w-6 h-6 toggle-arrow transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
                     <span class="sidebar-text ml-3 text-xs">Collapse</span>
                 </button>

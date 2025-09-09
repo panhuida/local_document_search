@@ -4,54 +4,54 @@
 
 {% block content %}
 <div class="space-y-8">
-    <h1 class="text-3xl font-bold text-slate-900">Conversion Error Records</h1>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Conversion Error Records</h1>
 
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden">
-        <div class="p-6 border-b border-slate-200">
-            <h2 class="text-xl font-semibold">Failed Files</h2>
-            <p class="text-sm text-slate-500 mt-1">A list of documents that failed during the processing stage.</p>
+    <div class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-xl overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Failed Files</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">A list of documents that failed during the processing stage.</p>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full">
-                <thead class="bg-slate-50">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             File Name
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             File Path
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Error Message
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Date
                         </th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-slate-200">
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {% for error in errors %}
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                             {{ error.file_name }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                             {{ error.file_path }}
                         </td>
                         <td class="px-6 py-4 whitespace-normal text-sm text-red-600">
                             <code class="text-xs">{{ error.error_message }}</code>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                             {{ error.created_at.strftime('%Y-%m-%d %H:%M:%S') if error.created_at else 'N/A' }}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="px-6 py-12 text-center text-sm text-slate-500">
+                        <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center">
                                 <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <h3 class="mt-2 text-lg font-medium text-slate-900">No Errors</h3>
-                                <p class="mt-1 text-sm text-slate-500">All files were processed successfully.</p>
+                                <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">No Errors</h3>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">All files were processed successfully.</p>
                             </div>
                         </td>
                     </tr>

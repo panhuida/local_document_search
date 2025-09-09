@@ -3,29 +3,32 @@
 {% block title %}Search Documents{% endblock %}
 
 {% block content %}
-<div class="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col" style="height: calc(100vh - 4rem);">
+<div class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-xl overflow-hidden flex flex-col" style="height: calc(100vh - 4rem);">
     <!-- Header with Search Bar -->
-    <div class="p-6 border-b border-slate-200">
-        <h1 class="text-2xl font-bold text-slate-900">Document Search</h1>
+    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Document Search</h1>
         <form id="search-form" class="mt-4">
-            <div class="flex rounded-md shadow-sm">
-                <input type="text" id="keyword" name="keyword" class="flex-1 block w-full rounded-none rounded-l-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Enter keywords and press Enter...">
-                <button type="button" onclick="performSearch()" class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-r-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </button>
+            <div class="relative">
+                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                    </svg>
+                </div>
+                <input type="search" id="keyword" name="keyword" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter keywords and press Enter...">
+                <button type="button" onclick="performSearch()" class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Search</button>
             </div>
         </form>
     </div>
 
     <!-- Results Area -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="p-6 text-sm text-slate-500 border-b border-slate-200">
+        <div class="p-6 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
             <div id="results-summary">Enter a query to see results.</div>
         </div>
-        <div id="results-container" class="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-200">
+        <div id="results-container" class="flex-1 overflow-y-auto custom-scrollbar divide-y divide-gray-200 dark:divide-gray-700">
             <!-- Results will be injected here by JavaScript -->
         </div>
-        <div id="pagination-container" class="p-4 bg-slate-50 flex justify-center border-t border-slate-200">
+        <div id="pagination-container" class="p-4 bg-gray-50 dark:bg-gray-800/50 flex justify-center border-t border-gray-200 dark:border-gray-700">
             <!-- Pagination will be injected here by JavaScript -->
         </div>
     </div>
@@ -34,10 +37,10 @@
 
 <!-- Modal for Markdown Preview -->
 <div id="preview-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] flex flex-col">
-        <div class="flex justify-between items-center p-4 border-b border-slate-200">
-            <h3 id="modal-title" class="text-xl font-semibold text-slate-800"></h3>
-            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-3xl font-light">&times;</button>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 id="modal-title" class="text-xl font-semibold text-gray-800 dark:text-gray-100"></h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 text-3xl font-light">&times;</button>
         </div>
         <div id="modal-content" class="p-6 overflow-y-auto custom-scrollbar markdown-body">
             <!-- Preview content will be injected here -->
@@ -45,15 +48,18 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-dark.min.css" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-light.min.css" media="(prefers-color-scheme: light)">
+
 <style>
     mark {
         background-color: #fde047; /* yellow-300 */
         padding: 0.2em 0.1em;
         border-radius: 3px;
+        color: black;
     }
     .markdown-body {
-        background-color: white;
+        background-color: transparent;
     }
 </style>
 
@@ -80,13 +86,13 @@ function performSearch(page = 1) {
     const keyword = keywordInput.value;
     if (!keyword) {
         resultsSummary.textContent = 'Please enter a keyword to search.';
-        resultsContainer.innerHTML = `<div class="p-12 text-center text-slate-500">Use the search bar above to find documents.</div>`;
+        resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Use the search bar above to find documents.</div>`;
         paginationContainer.innerHTML = '';
         return;
     }
     
     resultsSummary.textContent = 'Searching...';
-    resultsContainer.innerHTML = `<div class="p-12 text-center text-slate-500">Loading results...</div>`;
+    resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Loading results...</div>`;
 
 
     fetch(`/api/search?keyword=${encodeURIComponent(keyword)}&page=${page}`)
@@ -97,28 +103,28 @@ function performSearch(page = 1) {
                 resultsSummary.textContent = `Found ${data.data.search_info.total_results} results in ${data.data.search_info.search_time}.`;
                 
                 if (data.data.results.length === 0) {
-                    resultsContainer.innerHTML = `<div class="p-12 text-center text-slate-500">No results found for "${keyword}".</div>`;
+                    resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">No results found for "${keyword}".</div>`;
                 } else {
                     data.data.results.forEach(result => {
                         const resultEl = document.createElement('div');
-                        resultEl.className = 'p-6 hover:bg-slate-50 transition-colors duration-150 cursor-pointer';
+                        resultEl.className = 'p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 cursor-pointer';
                         resultEl.setAttribute('onclick', `previewMarkdown(${result.id}, '${result.filename}')`);
                         
                         const fileSize = result.filesize > 1024*1024 ? `${(result.filesize/(1024*1024)).toFixed(2)} MB` : `${(result.filesize/1024).toFixed(2)} KB`;
                         const modifiedDate = new Date(result.file_modified_time).toLocaleString();
 
                         resultEl.innerHTML = `
-                            <h3 class="text-lg font-semibold text-indigo-600" title="Click to preview content">
+                            <h3 class="text-lg font-semibold text-blue-600 dark:text-blue-400" title="Click to preview content">
                                 ${result.filename}
                             </h3>
-                            <div class="text-sm text-slate-700 mt-2">${result.snippet}</div>
+                            <div class="text-sm text-gray-700 dark:text-gray-300 mt-2">${result.snippet}</div>
                             <div class="flex items-center justify-between mt-3">
-                                <div class="text-xs text-slate-400">
+                                <div class="text-xs text-gray-400 dark:text-gray-500">
                                     <span><b>Modified:</b> ${modifiedDate}</span> | 
                                     <span><b>Size:</b> ${fileSize}</span> | 
                                     <span><b>Type:</b> ${result.filetype}</span>
                                 </div>
-                                <a href="#" onclick="openLocalFile(event, '${result.filepath}')" class="text-xs text-indigo-600 hover:underline" title="Click to open original file">
+                                <a href="#" onclick="openLocalFile(event, '${result.filepath}')" class="text-xs text-blue-600 hover:underline dark:text-blue-400" title="Click to open original file">
                                     Open File
                                 </a>
                             </div>
@@ -145,8 +151,8 @@ function renderPagination(pagination, keyword) {
 
     let paginationHTML = '<nav class="flex items-center space-x-1">';
     
-    const prevDisabled = !pagination.has_prev ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-200';
-    paginationHTML += `<a href="#" onclick="${pagination.has_prev ? `performSearch(${pagination.page - 1})` : 'event.preventDefault()'}" class="px-3 py-2 rounded-md text-sm font-medium bg-slate-100 text-slate-700 ${prevDisabled}">Prev</a>`;
+    const prevDisabled = !pagination.has_prev ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-600';
+    paginationHTML += `<a href="#" onclick="${pagination.has_prev ? `performSearch(${pagination.page - 1})` : 'event.preventDefault()'}" class="px-3 py-2 rounded-md text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ${prevDisabled}">Prev</a>`;
 
     const maxPagesToShow = 7;
     let startPage, endPage;
@@ -169,26 +175,26 @@ function renderPagination(pagination, keyword) {
     }
 
     if (startPage > 1) {
-        paginationHTML += `<a href="#" onclick="performSearch(1)" class="px-3 py-2 rounded-md text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">1</a>`;
+        paginationHTML += `<a href="#" onclick="performSearch(1)" class="px-3 py-2 rounded-md text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">1</a>`;
         if (startPage > 2) {
-            paginationHTML += `<span class="px-3 py-2 text-sm text-slate-500">...</span>`;
+            paginationHTML += `<span class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">...</span>`;
         }
     }
 
     for (let i = startPage; i <= endPage; i++) {
-        const activeClass = i === pagination.page ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200';
+        const activeClass = i === pagination.page ? 'bg-blue-600 text-white dark:bg-blue-500' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600';
         paginationHTML += `<a href="#" onclick="performSearch(${i})" class="px-3 py-2 rounded-md text-sm font-medium ${activeClass}">${i}</a>`;
     }
 
     if (endPage < pagination.total_pages) {
         if (endPage < pagination.total_pages - 1) {
-            paginationHTML += `<span class="px-3 py-2 text-sm text-slate-500">...</span>`;
+            paginationHTML += `<span class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">...</span>`;
         }
-        paginationHTML += `<a href="#" onclick="performSearch(${pagination.total_pages})" class="px-3 py-2 rounded-md text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">${pagination.total_pages}</a>`;
+        paginationHTML += `<a href="#" onclick="performSearch(${pagination.total_pages})" class="px-3 py-2 rounded-md text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">${pagination.total_pages}</a>`;
     }
 
-    const nextDisabled = !pagination.has_next ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-200';
-    paginationHTML += `<a href="#" onclick="${pagination.has_next ? `performSearch(${pagination.page + 1})` : 'event.preventDefault()'}" class="px-3 py-2 rounded-md text-sm font-medium bg-slate-100 text-slate-700 ${nextDisabled}">Next</a>`;
+    const nextDisabled = !pagination.has_next ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-600';
+    paginationHTML += `<a href="#" onclick="${pagination.has_next ? `performSearch(${pagination.page + 1})` : 'event.preventDefault()'}" class="px-3 py-2 rounded-md text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 ${nextDisabled}">Next</a>`;
     
     paginationHTML += '</nav>';
     paginationContainer.innerHTML = paginationHTML;
@@ -196,7 +202,7 @@ function renderPagination(pagination, keyword) {
 
 function previewMarkdown(docId, filename) {
     modalTitle.textContent = filename;
-    modalContent.innerHTML = '<p class="p-6 text-center text-slate-500">Loading preview...</p>';
+    modalContent.innerHTML = '<p class="p-6 text-center text-gray-500 dark:text-gray-400">Loading preview...</p>';
     modal.classList.remove('hidden');
 
     fetch(`/api/preview/markdown/${docId}`)
