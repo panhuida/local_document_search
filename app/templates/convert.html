@@ -90,22 +90,38 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'success') {
                 const types = data.data;
-                let html = '';
+                fileTypesContainer.innerHTML = ''; // Clear existing content
                 for (const category in types) {
                     if (category.endsWith('_types')) {
                         const categoryName = category.replace('_types', '').replace(/_/g, ' ');
-                        html += `<div class="col-span-full font-semibold text-gray-600 dark:text-gray-400 text-sm uppercase">${categoryName}</div>`;
+                        
+                        const title = document.createElement('div');
+                        title.className = 'col-span-full font-semibold text-gray-600 dark:text-gray-400 text-sm uppercase';
+                        title.textContent = categoryName;
+                        fileTypesContainer.appendChild(title);
+
                         types[category].forEach(type => {
-                            html += `
-                            <div class="flex items-center">
-                                <input id="type-${type.ext}" value="${type.ext}" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" checked>
-                                <label for="type-${type.ext}" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">${type.name} (.${type.ext})</label>
-                            </div>
-                            `;
+                            const div = document.createElement('div');
+                            div.className = 'flex items-center';
+
+                            const checkbox = document.createElement('input');
+                            checkbox.id = `type-${type.ext}`;
+                            checkbox.value = type.ext;
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded';
+                            checkbox.checked = true;
+
+                            const label = document.createElement('label');
+                            label.htmlFor = `type-${type.ext}`;
+                            label.className = 'ml-2 block text-sm text-gray-700 dark:text-gray-300';
+                            label.textContent = `${type.name} (.${type.ext})`;
+                            
+                            div.appendChild(checkbox);
+                            div.appendChild(label);
+                            fileTypesContainer.appendChild(div);
                         });
                     }
                 }
-                fileTypesContainer.innerHTML = html;
             }
         });
 
@@ -133,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const resultsCard = document.getElementById('results-card');
         const progress = document.getElementById('progress');
         const progressBar = document.getElementById('progress-bar');
-        const progressText =.getElementById('progress-text');
+        const progressText = document.getElementById('progress-text');
         const summary = document.getElementById('summary');
 
         resultsCard.classList.remove('hidden');

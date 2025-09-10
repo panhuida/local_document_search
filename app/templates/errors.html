@@ -8,9 +8,29 @@
 
     <div class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-xl overflow-hidden">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Failed Files</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">A list of documents that failed during the processing stage.</p>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Filter Errors</h2>
+            <form method="GET" action="{{ url_for('main.errors_page') }}">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
+                    <div>
+                        <label for="file_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">File Name</label>
+                        <input type="text" name="file_name" id="file_name" value="{{ file_name_search or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">From</label>
+                        <input type="date" name="date_from" id="date_from" value="{{ date_from or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
+                        <input type="date" name="date_to" id="date_to" value="{{ date_to or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div class="flex items-end space-x-2">
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Filter</button>
+                        <a href="{{ url_for('main.errors_page') }}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Reset</a>
+                    </div>
+                </div>
+            </form>
         </div>
+        
         <div class="overflow-x-auto">
             <table class="min-w-full">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
@@ -32,17 +52,17 @@
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {% for error in errors %}
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <td class="px-6 py-4 whitespace-normal text-sm font-medium text-gray-900 dark:text-gray-100 max-w-xs overflow-hidden text-ellipsis">
                             {{ error.file_name }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td class="px-6 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 max-w-xs overflow-hidden text-ellipsis">
                             {{ error.file_path }}
                         </td>
-                        <td class="px-6 py-4 whitespace-normal text-sm text-red-600">
+                        <td class="px-6 py-4 whitespace-normal text-sm text-red-600 max-w-md" style="word-break: break-all;">
                             <code class="text-xs">{{ error.error_message }}</code>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ error.created_at.strftime('%Y-%m-%d %H:%M:%S') if error.created_at else 'N/A' }}
+                            {{ error.updated_at.strftime('%Y-%m-%d %H:%M:%S') if error.updated_at else 'N/A' }}
                         </td>
                     </tr>
                     {% else %}
@@ -50,8 +70,8 @@
                         <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center">
                                 <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">No Errors</h3>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">All files were processed successfully.</p>
+                                <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">No Errors Found</h3>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No errors match your current filter criteria.</p>
                             </div>
                         </td>
                     </tr>
