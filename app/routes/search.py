@@ -98,7 +98,17 @@ def search_route():
     if file_types:
         file_types = file_types.split(',')
 
-    pagination = search_documents(keyword, sort_by, sort_order, page, per_page, file_types, date_from, date_to)
+    pagination = search_documents(
+        keyword=keyword,
+        search_type=search_type,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page=page,
+        per_page=per_page,
+        file_types=file_types,
+        date_from=date_from,
+        date_to=date_to
+    )
     end_time = time.time()
     search_time = f'{end_time - start_time:.2f}s'
 

@@ -8,14 +8,20 @@
     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Document Search</h1>
         <form id="search-form" class="mt-4">
-            <div class="relative">
-                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                    </svg>
+            <div class="flex items-center gap-2">
+                <div class="relative flex-grow">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                        </svg>
+                    </div>
+                    <input type="search" id="keyword" name="keyword" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter keywords and press Enter...">
                 </div>
-                <input type="search" id="keyword" name="keyword" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter keywords and press Enter...">
-                <button type="button" onclick="performSearch()" class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Search</button>
+                <select id="search_type" name="search_type" class="p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <option value="full_text" selected>Full-text</option>
+                    <option value="trigram">Trigram</option>
+                </select>
+                <button type="button" onclick="performSearch()" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-4 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Search</button>
             </div>
         </form>
     </div>
@@ -68,6 +74,7 @@
 // The old script is compatible with the new structure.
 const searchForm = document.getElementById('search-form');
 const keywordInput = document.getElementById('keyword');
+const searchTypeSelect = document.getElementById('search_type');
 const resultsContainer = document.getElementById('results-container');
 const resultsSummary = document.getElementById('results-summary');
 const paginationContainer = document.getElementById('pagination-container');
@@ -84,6 +91,7 @@ keywordInput.addEventListener('keydown', function(e) {
 
 function performSearch(page = 1) {
     const keyword = keywordInput.value;
+    const searchType = searchTypeSelect.value;
     if (!keyword) {
         resultsSummary.textContent = 'Please enter a keyword to search.';
         resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Use the search bar above to find documents.</div>`;
@@ -95,7 +103,7 @@ function performSearch(page = 1) {
     resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Loading results...</div>`;
 
 
-    fetch(`/api/search?keyword=${encodeURIComponent(keyword)}&page=${page}`)
+    fetch(`/api/search?keyword=${encodeURIComponent(keyword)}&search_type=${searchType}&page=${page}`)
         .then(response => response.json())
         .then(data => {
             resultsContainer.innerHTML = '';
