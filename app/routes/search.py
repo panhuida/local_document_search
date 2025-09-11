@@ -114,8 +114,8 @@ def search_route():
 
     results = []
     for item in pagination.items:
-        # Unpack the document and score based on the search type
-        if search_type == 'trigram' and keyword:
+        # Unpack the document and score if the search returns scores
+        if (search_type == 'full_text' or search_type == 'trigram') and keyword:
             doc, score = item
         else:
             doc, score = item, None

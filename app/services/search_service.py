@@ -1,8 +1,7 @@
 import re
-import jieba
 from app.models import Document
 from app.extensions import db
-from sqlalchemy import func, cast, TEXT
+from sqlalchemy import func, cast, TEXT, literal_column
 
 def search_documents(keyword, search_type='full_text', sort_by='relevance', sort_order='desc', page=1, per_page=20, file_types=None, date_from=None, date_to=None):
     """搜索文档"""
@@ -18,9 +17,15 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
 
     if keyword:
         if search_type == 'full_text':
-            # Use jieba to segment Chinese keywords for full-text search
-            segmented_keyword = ' & '.join(jieba.cut_for_search(keyword))
-            query = query.filter(Document.search_vector.match(segmented_keyword, postgresql_regconfig='simple'))
+            # Directly inject the SQL for pgroonga_score to avoid argument errors
+            score_col = literal_column("pgroonga_score(documents)").label("score")
+            query = query.with_entities(Document, score_col)
+            query = query.filter(
+                db.or_(
+                    Document.file_name.op('&@')(keyword),
+                    Document.markdown_content.op('&@')(keyword)
+                )
+            )
         
         elif search_type == 'trigram':
             # Calculate similarity score against content and filename
@@ -38,10 +43,10 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
     # 1. Handle relevance sort first
     if keyword and sort_by == 'relevance':
         if search_type == 'full_text':
-            processed_keyword = ' & '.join(re.split(r'[\s+]+', keyword))
-            order_by_clause = func.ts_rank(Document.search_vector, func.to_tsquery('simple', processed_keyword)).desc()
+            # For PGroonga, we order by the calculated score
+            order_by_clause = db.desc("score")
         elif search_type == 'trigram':
-            # For trigram, we now order by the calculated similarity score
+            # For trigram, we order by the calculated similarity score
             order_by_clause = db.desc("similarity")
 
     # 2. If relevance sort was not applicable, handle other sort options
