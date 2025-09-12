@@ -17,15 +17,10 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
 
     if keyword:
         if search_type == 'full_text':
-            # Directly inject the SQL for pgroonga_score to avoid argument errors
+            # Use the &@~ operator for web-style search on the markdown_content column.
             score_col = literal_column("pgroonga_score(documents)").label("score")
             query = query.with_entities(Document, score_col)
-            query = query.filter(
-                db.or_(
-                    Document.file_name.op('&@')(keyword),
-                    Document.markdown_content.op('&@')(keyword)
-                )
-            )
+            query = query.filter(Document.markdown_content.op('&@~')(keyword))
         
         elif search_type == 'trigram':
             # Calculate similarity score against content and filename

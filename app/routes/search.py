@@ -84,77 +84,84 @@ def create_highlighted_snippet(content, keyword, length=200):
 def search_route():
     logger = current_app.logger
     start_time = time.time()
-    keyword = request.args.get('keyword')
-    logger.info(f"Received search query with keyword: '{keyword}'")
-    sort_by = request.args.get('sort_by', 'relevance')
-    search_type = request.args.get('search_type', 'full_text')
-    sort_order = request.args.get('sort_order', 'desc')
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
-    file_types = request.args.get('file_types')
-    date_from = request.args.get('date_from')
-    date_to = request.args.get('date_to')
+    try:
+        keyword = request.args.get('keyword')
+        logger.info(f"Received search query with keyword: '{keyword}'")
+        sort_by = request.args.get('sort_by', 'relevance')
+        search_type = request.args.get('search_type', 'full_text')
+        sort_order = request.args.get('sort_order', 'desc')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        file_types = request.args.get('file_types')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
 
-    if file_types:
-        file_types = file_types.split(',')
+        if file_types:
+            file_types = file_types.split(',')
 
-    pagination = search_documents(
-        keyword=keyword,
-        search_type=search_type,
-        sort_by=sort_by,
-        sort_order=sort_order,
-        page=page,
-        per_page=per_page,
-        file_types=file_types,
-        date_from=date_from,
-        date_to=date_to
-    )
-    end_time = time.time()
-    search_time = f'{end_time - start_time:.2f}s'
+        pagination = search_documents(
+            keyword=keyword,
+            search_type=search_type,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            per_page=per_page,
+            file_types=file_types,
+            date_from=date_from,
+            date_to=date_to
+        )
+        end_time = time.time()
+        search_time = f'{end_time - start_time:.2f}s'
 
-    results = []
-    for item in pagination.items:
-        # Unpack the document and score if the search returns scores
-        if (search_type == 'full_text' or search_type == 'trigram') and keyword:
-            doc, score = item
-        else:
-            doc, score = item, None
+        results = []
+        for item in pagination.items:
+            # Unpack the document and score if the search returns scores
+            if (search_type == 'full_text' or search_type == 'trigram') and keyword:
+                doc, score = item
+            else:
+                doc, score = item, None
 
-        snippet = create_highlighted_snippet(doc.markdown_content, keyword)
-        highlighted_filename = highlight_text(doc.file_name, keyword)
-        result_item = {
-            'id': doc.id,
-            'filename': highlighted_filename,
-            'filepath': doc.file_path,
-            'filetype': doc.file_type,
-            'filesize': doc.file_size,
-            'file_modified_time': doc.file_modified_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'snippet': snippet
-        }
-        if score is not None:
-            result_item['relevance'] = round(score, 3)
-        results.append(result_item)
-
-    return jsonify({
-        'status': 'success',
-        'data': {
-            'search_info': {
-                'keyword': keyword,
-                'search_type': search_type,
-                'sort_by': sort_by,
-                'total_results': pagination.total,
-                'search_time': search_time
-            },
-            'results': results,
-            'pagination': {
-                'page': pagination.page,
-                'per_page': pagination.per_page,
-                'total_pages': pagination.pages,
-                'has_next': pagination.has_next,
-                'has_prev': pagination.has_prev
+            snippet = create_highlighted_snippet(doc.markdown_content, keyword)
+            highlighted_filename = highlight_text(doc.file_name, keyword)
+            result_item = {
+                'id': doc.id,
+                'filename': highlighted_filename,
+                'filepath': doc.file_path,
+                'filetype': doc.file_type,
+                'filesize': doc.file_size,
+                'file_modified_time': doc.file_modified_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'snippet': snippet
             }
-        }
-    })
+            if score is not None:
+                result_item['relevance'] = round(score, 3)
+            results.append(result_item)
+
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'search_info': {
+                    'keyword': keyword,
+                    'search_type': search_type,
+                    'sort_by': sort_by,
+                    'total_results': pagination.total,
+                    'search_time': search_time
+                },
+                'results': results,
+                'pagination': {
+                    'page': pagination.page,
+                    'per_page': pagination.per_page,
+                    'total_pages': pagination.pages,
+                    'has_next': pagination.has_next,
+                    'has_prev': pagination.has_prev
+                }
+            }
+        })
+    except Exception as e:
+        logger.error("An error occurred during search.", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': 'An error occurred during the search. Please check the logs for details.'
+        }), 500
 
 @bp.route('/config/file-types', methods=['GET'])
 def get_file_types_config():

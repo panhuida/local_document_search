@@ -57,7 +57,6 @@ def generate_conversion_stream(app, folder_path, date_from, date_to, recursive, 
             processed_files = 0
             skipped_files = 0
             error_files = 0
-            TSVECTOR_LIMIT = 1000000
 
             for i, file_path in enumerate(matched_files):
                 progress = int(((i + 1) / total_files) * 100)
@@ -88,14 +87,11 @@ def generate_conversion_stream(app, folder_path, date_from, date_to, recursive, 
                     yield from stream_log(f"Failed to convert file: {file_path}. Reason: {error_message}", 'error', stage='file_error')
                     continue
 
-                content_for_vector = markdown_content[:TSVECTOR_LIMIT]
-
                 if existing_doc:
                     existing_doc.file_size = metadata['file_size']
                     existing_doc.file_modified_time = metadata['file_modified_time']
                     existing_doc.markdown_content = markdown_content
                     existing_doc.is_converted = is_converted
-                    existing_doc.search_vector = func.to_tsvector('simple', content_for_vector)
                 else:
                     new_doc = Document(
                         file_name=metadata['file_name'],
@@ -106,7 +102,6 @@ def generate_conversion_stream(app, folder_path, date_from, date_to, recursive, 
                         file_path=metadata['file_path'],
                         markdown_content=markdown_content,
                         is_converted=is_converted,
-                        search_vector=func.to_tsvector('simple', content_for_vector)
                     )
                     db.session.add(new_doc)
                 

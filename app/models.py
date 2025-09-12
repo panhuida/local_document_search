@@ -1,6 +1,7 @@
 from sqlalchemy import (Column, Integer, String, Text, TIMESTAMP, BigInteger, Index)
 from sqlalchemy.sql import func
 from app.extensions import db
+from sqlalchemy.dialects import postgresql
 
 class Document(db.Model):
     __tablename__ = 'documents'
