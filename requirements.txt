@@ -5,5 +5,3 @@ psycopg2-binary
 Flask-Migrate
 markitdown[all]
 Markdown
-pdfplumber
-jieba==0.42.1
