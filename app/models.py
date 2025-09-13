@@ -16,8 +16,8 @@ class Document(db.Model):
     file_name = Column(String(200), nullable=False)
     file_type = Column(String(50))
     file_size = Column(BigInteger)
-    file_created_at = Column(TIMESTAMP)
-    file_modified_time = Column(TIMESTAMP)
+    file_created_at = Column(TIMESTAMP(timezone=True))
+    file_modified_time = Column(TIMESTAMP(timezone=True))
     file_path = Column(Text, nullable=False, unique=True)
     content = Column(Text)
     conversion_type = Column(Integer)  # See ConversionType class

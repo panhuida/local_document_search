@@ -1,6 +1,7 @@
 import os
 import json
 import tkinter as tk
+import unicodedata
 from tkinter import filedialog
 from flask import Blueprint, request, jsonify, current_app, Response
 from app.services.ingest import ingest_folder
@@ -32,6 +33,19 @@ def convert_stream_route():
     date_to = request.args.get('date_to')
     recursive = request.args.get('recursive', 'true').lower() == 'true'
     file_types = request.args.get('file_types')
+
+    # --- Path Normalization ---
+    if folder_path:
+        # 规范化路径以匹配数据库格式：NFC Unicode, 使用 / 分隔符
+        # 注意：os.path.abspath 在这里是关键，因为它会返回一个大小写正确的盘符
+        abs_path = os.path.abspath(folder_path)
+        nfc_path = unicodedata.normalize('NFC', abs_path)
+        folder_path = nfc_path.replace('\\', '/')
+
+    current_app.logger.info(
+        f"Starting conversion stream with parameters: folder_path='{folder_path}', "
+        f"date_from='{date_from}', date_to='{date_to}', recursive={recursive}, file_types='{file_types}'"
+    )
 
     if not folder_path or not os.path.isdir(folder_path):
         def error_stream():

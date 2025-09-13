@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import datetime, timezone
 import traceback
 from flask import current_app
 from markitdown import MarkItDown
@@ -9,32 +9,6 @@ from app.extensions import db
 
 # Initialize markitdown instance
 _md = MarkItDown()
-
-def _scan_folder(folder_path, date_from=None, date_to=None, recursive=True, file_types=None):
-    """
-    Scans a folder and filters files based on given criteria.
-    (Moved from file_scanner.py)
-    """
-    matched_files = []
-    for root, dirs, files in os.walk(folder_path):
-        dirs[:] = [d for d in dirs if not d.endswith('.assets')]
-        for file in files:
-            if file_types and not file.lower().endswith(tuple(file_types)):
-                continue
-
-            file_path = os.path.join(root, file)
-            try:
-                modified_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-                if date_from and modified_time < date_from:
-                    continue
-                if date_to and modified_time > date_to:
-                    continue
-                matched_files.append(file_path)
-            except FileNotFoundError:
-                continue
-        if not recursive:
-            break
-    return matched_files
 
 def _convert_to_markdown(file_path, file_type):
     """
@@ -91,18 +65,67 @@ def _convert_to_markdown(file_path, file_type):
         error_message = f"An unexpected error occurred in converter for {file_path}: {e}\n{traceback.format_exc()}"
         return error_message, None
 
-def ingest_folder(folder_path, date_from, date_to, recursive, file_types):
+def ingest_folder(folder_path, date_from_str, date_to_str, recursive, file_types_str):
     """
     Orchestrates the entire ingestion process for a folder and yields progress updates.
-    (Core logic from routes/convert.py)
+    This function now contains all logic, including scanning and filtering,
+    to ensure consistent data handling (timezone-aware datetimes, normalized paths).
     """
     logger = current_app.logger
+    
+    # --- Timezone-aware date parsing ---
+    date_from, date_to = None, None
+    try:
+        if date_from_str:
+            date_from = datetime.fromisoformat(date_from_str).replace(tzinfo=timezone.utc)
+        if date_to_str:
+            # Add time component to include the whole day
+            date_to = datetime.fromisoformat(date_to_str + 'T23:59:59.999999').replace(tzinfo=timezone.utc)
+    except ValueError as e:
+        yield {'level': 'critical', 'message': f"Invalid date format: {e}", 'stage': 'critical_error'}
+        return
+
+    # --- File type parsing ---
+    file_types = [ft.strip().lower() for ft in file_types_str.split(',')] if file_types_str else None
+
     try:
         yield {'level': 'info', 'message': f"Starting folder scan: {folder_path}", 'stage': 'scan_start'}
         
-        matched_files = _scan_folder(folder_path, date_from, date_to, recursive, file_types)
-        total_files = len(matched_files)
+        # --- Unified File Scanning & Filtering ---
+        matched_files = []
+        # DEBUG: Log the initial folder_path for os.walk
+        logger.debug(f"os.walk starting with folder_path: '{folder_path}' (type: {type(folder_path)})")
+        for root, dirs, files in os.walk(folder_path):
+            # Exclude asset folders created by markitdown
+            dirs[:] = [d for d in dirs if not d.endswith('.assets')]
+            
+            for file in files:
+                # DEBUG: Log components before joining
+                logger.debug(f"  - Found root: '{root}', file: '{file}'")
+                file_path = os.path.join(root, file)
+                
+                # Filter by file type
+                if file_types and not file.lower().endswith(tuple(f".{ft}" for ft in file_types)):
+                    continue
+
+                # Get timezone-aware and normalized metadata
+                metadata = get_file_metadata(file_path)
+                if not metadata:
+                    continue # Skip if metadata can't be retrieved
+
+                # Filter by date (now timezone-aware)
+                file_modified_time_utc = metadata['file_modified_time']
+                if date_from and file_modified_time_utc < date_from:
+                    continue
+                if date_to and file_modified_time_utc > date_to:
+                    continue
+                
+                matched_files.append(file_path)
+
+            if not recursive:
+                break
         
+        total_files = len(matched_files)
         yield {'level': 'info', 'message': f"Scan found {total_files} matching files.", 'stage': 'scan_complete', 'total_files': total_files}
 
         if total_files == 0:
@@ -116,12 +139,21 @@ def ingest_folder(folder_path, date_from, date_to, recursive, file_types):
             progress = int(((i + 1) / total_files) * 100)
             yield {'level': 'info', 'message': f"Processing file {i+1}/{total_files}: {os.path.basename(file_path)}", 'stage': 'file_processing', 'progress': progress, 'current_file': os.path.basename(file_path)}
 
+            # --- Use normalized and timezone-aware metadata ---
             metadata = get_file_metadata(file_path)
             if not metadata:
                 yield {'level': 'warning', 'message': f"Could not get metadata for {file_path}, skipping.", 'stage': 'file_skip'}
                 continue
 
-            existing_doc = Document.query.filter_by(file_path=metadata['file_path']).first()
+            # --- Database check using normalized path and aware datetime ---
+            # DEBUG: Log the path used for DB query
+            logger.debug(f"Querying DB for file_path: '{metadata['file_path']}'")
+            existing_doc = Document.query.filter(Document.file_path.ilike(metadata['file_path'])).first()
+            if existing_doc:
+                # DEBUG: Log comparison details
+                logger.debug(f"  - Found existing doc. DB mod_time: {existing_doc.file_modified_time} (tz: {existing_doc.file_modified_time.tzinfo}), "
+                             f"File mod_time: {metadata['file_modified_time']} (tz: {metadata['file_modified_time'].tzinfo})")
+
             if existing_doc and existing_doc.file_modified_time == metadata['file_modified_time']:
                 skipped_files += 1
                 yield {'level': 'info', 'message': f"Skipping unchanged file: {file_path}", 'stage': 'file_skip', 'reason': 'unchanged'}
@@ -131,7 +163,7 @@ def ingest_folder(folder_path, date_from, date_to, recursive, file_types):
 
             if conversion_type is None:
                 error_files += 1
-                error_message = content # content is the error message on failure
+                error_message = content
                 if existing_doc:
                     existing_doc.status = 'failed'
                     existing_doc.error_message = error_message

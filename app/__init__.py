@@ -21,16 +21,28 @@ def create_app(config_class=Config):
     app.register_blueprint(search.bp)
 
     # 配置日志
+    # Forcefully remove all existing handlers to avoid duplicates
+    for handler in app.logger.handlers[:]:
+        app.logger.removeHandler(handler)
+        
+    log_level = app.config.get('LOG_LEVEL', logging.INFO)
+    app.logger.setLevel(log_level)
+
+    # Create a stream handler for console output
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(module)s:%(lineno)d]'))
+    app.logger.addHandler(stream_handler)
+
     if not app.debug and not app.testing:
         if not os.path.exists('logs'):
             os.mkdir('logs')
         file_handler = RotatingFileHandler('logs/app.log', maxBytes=1024 * 1024 * 10, backupCount=10)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(log_level)
         app.logger.addHandler(file_handler)
 
-        app.logger.setLevel(logging.INFO)
-        app.logger.info('Application startup')
+    app.logger.info('Application startup')
 
     return app

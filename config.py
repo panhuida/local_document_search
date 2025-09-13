@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 # 加载 .env 文件
@@ -10,6 +11,7 @@ class Config:
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    LOG_LEVEL = logging.DEBUG if os.environ.get('FLASK_DEBUG') == '1' else logging.INFO
 
     # 文件类型配置
     NATIVE_MARKDOWN_TYPES = os.environ.get('NATIVE_MARKDOWN_TYPES', 'md').split(',')
