@@ -1,4 +1,6 @@
 import re
+import time
+from flask import current_app
 from app.models import Document
 from app.extensions import db
 from sqlalchemy import func, cast, TEXT, literal_column
@@ -6,6 +8,9 @@ import sqlalchemy as sa
 
 def search_documents(keyword, search_type='full_text', sort_by='relevance', sort_order='desc', page=1, per_page=20, file_types=None, date_from=None, date_to=None):
     """搜索文档"""
+    logger = current_app.logger
+    start_time = time.time()
+
     # Start query by filtering for completed documents only
     query = Document.query.filter(Document.status == 'completed')
 
@@ -67,5 +72,19 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
 
     query = query.order_by(order_by_clause)
 
+    # Log the final query for debugging
+    try:
+        # This is a simplified representation for logging. The actual query sent to the DB might be more complex.
+        final_sql = str(query.statement.compile(dialect=db.engine.dialect, compile_kwargs={"literal_binds": True}))
+        logger.debug(f"Executing search query: {final_sql}")
+    except Exception as e:
+        logger.warning(f"Could not compile search query for logging: {e}")
+
+
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    end_time = time.time()
+    duration = end_time - start_time
+    logger.info(f"Search completed in {duration:.4f} seconds. Found {pagination.total} results.")
+    
     return pagination

@@ -84,9 +84,9 @@ def create_highlighted_snippet(content, keyword, length=200):
 def search_route():
     logger = current_app.logger
     start_time = time.time()
+    
     try:
         keyword = request.args.get('keyword')
-        logger.info(f"Received search query with keyword: '{keyword}'")
         sort_by = request.args.get('sort_by', 'relevance')
         search_type = request.args.get('search_type', 'full_text')
         sort_order = request.args.get('sort_order', 'desc')
@@ -95,6 +95,12 @@ def search_route():
         file_types = request.args.get('file_types')
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+
+        logger.info(
+            f"Search request received. Keyword: '{keyword}', Type: '{search_type}', "
+            f"Sort: '{sort_by}'/'{sort_order}', Page: {page}, PerPage: {per_page}, "
+            f"FileTypes: '{file_types}', DateFrom: '{date_from}', DateTo: '{date_to}'"
+        )
 
         if file_types:
             file_types = file_types.split(',')

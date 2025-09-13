@@ -64,8 +64,8 @@ def retry_conversion(doc_id):
         
         content, conversion_type = _convert_to_markdown(doc.file_path, doc.file_type)
 
-        if conversion_type == 4: # Conversion failed again
-            doc.error_message = content
+        if conversion_type is None: # Conversion failed again
+            doc.error_message = content # content is the error message
             db.session.commit()
             return jsonify({'status': 'error', 'message': f'Retry failed: {content}'})
         

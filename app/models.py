@@ -3,6 +3,12 @@ from sqlalchemy.sql import func
 from app.extensions import db
 from sqlalchemy.dialects import postgresql
 
+class ConversionType:
+    DIRECT = 0
+    TEXT_TO_MD = 1
+    CODE_TO_MD = 2
+    STRUCTURED_TO_MD = 3
+
 class Document(db.Model):
     __tablename__ = 'documents'
 
@@ -14,7 +20,7 @@ class Document(db.Model):
     file_modified_time = Column(TIMESTAMP)
     file_path = Column(Text, nullable=False, unique=True)
     content = Column(Text)
-    conversion_type = Column(Integer)  # 0-直接存储，1-文本转Markdown，2-代码转Markdown，3-结构化转Markdown，4-转换失败
+    conversion_type = Column(Integer)  # See ConversionType class
     status = Column(String(50), nullable=False, default='pending', index=True) # pending, completed, failed
     error_message = Column(Text)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

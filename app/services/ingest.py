@@ -4,7 +4,7 @@ import traceback
 from flask import current_app
 from markitdown import MarkItDown
 from app.utils.file_utils import get_file_metadata
-from app.models import Document
+from app.models import Document, ConversionType
 from app.extensions import db
 
 # Initialize markitdown instance
@@ -38,43 +38,58 @@ def _scan_folder(folder_path, date_from=None, date_to=None, recursive=True, file
 
 def _convert_to_markdown(file_path, file_type):
     """
-    Converts a file to Markdown format.
-    (Moved from converter.py)
+    Converts a file to Markdown format with fine-grained error handling.
+    Returns a tuple of (content, conversion_type).
+    On failure, returns (error_message, None).
     """
+    file_type_lower = file_type.lower()
+    
     try:
-        file_type_lower = file_type.lower()
-        content = ""
-        conversion_type = 4  # Default to error/unsupported
-
         if file_type_lower in current_app.config.get('NATIVE_MARKDOWN_TYPES', []):
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            conversion_type = 0
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                conversion_type = ConversionType.DIRECT
+            except (IOError, OSError) as e:
+                return f"Error reading native markdown file: {e}", None
+
         elif file_type_lower in current_app.config.get('PLAIN_TEXT_TO_MARKDOWN_TYPES', []):
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                text = f.read()
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    text = f.read()
                 content = f"# {os.path.basename(file_path)}\n\n{text}"
-            conversion_type = 1
+                conversion_type = ConversionType.TEXT_TO_MD
+            except (IOError, OSError) as e:
+                return f"Error reading plain text file: {e}", None
+
         elif file_type_lower in current_app.config.get('CODE_TO_MARKDOWN_TYPES', []):
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                text = f.read()
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    text = f.read()
                 content = f"# {os.path.basename(file_path)}\n\n```{file_type_lower}\n{text}\n```"
-            conversion_type = 2
+                conversion_type = ConversionType.CODE_TO_MD
+            except (IOError, OSError) as e:
+                return f"Error reading code file: {e}", None
+
         elif file_type_lower in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', []):
-            with open(file_path, 'rb') as f:
-                result = _md.convert(f)
-            if not result.text_content or not result.text_content.strip():
-                return f"Conversion resulted in empty content for {file_path}", 4
-            content = result.text_content
-            conversion_type = 3
+            try:
+                with open(file_path, 'rb') as f:
+                    result = _md.convert(f)
+                if not result.text_content or not result.text_content.strip():
+                    return f"Markitdown conversion resulted in empty content for {file_path}", None
+                content = result.text_content
+                conversion_type = ConversionType.STRUCTURED_TO_MD
+            except Exception as e:
+                return f"Markitdown conversion failed: {e}", None
         else:
-            return f"Unsupported file type: {file_type}", 4
+            return f"Unsupported file type: {file_type}", None
 
         sanitized_content = content.replace('\x00', '')
         return sanitized_content, conversion_type
+        
     except Exception as e:
-        error_message = f"Converter failed for {file_path}: {e}\n{traceback.format_exc()}"
-        return error_message, 4
+        error_message = f"An unexpected error occurred in converter for {file_path}: {e}\n{traceback.format_exc()}"
+        return error_message, None
 
 def ingest_folder(folder_path, date_from, date_to, recursive, file_types):
     """
@@ -114,9 +129,9 @@ def ingest_folder(folder_path, date_from, date_to, recursive, file_types):
 
             content, conversion_type = _convert_to_markdown(file_path, metadata['file_type'])
 
-            if conversion_type == 4:
+            if conversion_type is None:
                 error_files += 1
-                error_message = content
+                error_message = content # content is the error message on failure
                 if existing_doc:
                     existing_doc.status = 'failed'
                     existing_doc.error_message = error_message
