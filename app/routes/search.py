@@ -121,7 +121,7 @@ def search_route():
             else:
                 doc, score = item, None
 
-            snippet = create_highlighted_snippet(doc.markdown_content, keyword)
+            snippet = create_highlighted_snippet(doc.content, keyword)
             highlighted_filename = highlight_text(doc.file_name, keyword)
             result_item = {
                 'id': doc.id,
@@ -184,7 +184,7 @@ def get_file_types_config():
 def get_markdown_preview(document_id):
     from app.models import Document
     doc = Document.query.get_or_404(document_id)
-    rendered_html = markdown.markdown(doc.markdown_content)
+    rendered_html = markdown.markdown(doc.content)
     return jsonify({
         'status': 'success',
         'data': {
@@ -193,7 +193,7 @@ def get_markdown_preview(document_id):
             'file_type': doc.file_type,
             'file_size': doc.file_size,
             'file_modified_time': doc.file_modified_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'markdown_content': doc.markdown_content,
+            'markdown_content': doc.content,
             'rendered_html': rendered_html
         }
     })

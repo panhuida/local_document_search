@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, current_app, Response
 from app.services.file_scanner import scan_folder
 from app.services.converter import convert_to_markdown
 from app.utils.file_utils import get_file_metadata
-from app.models import Document, ConversionError
+from app.models import Document
 from app.extensions import db
 from sqlalchemy import func
 
@@ -78,20 +78,34 @@ def generate_conversion_stream(app, folder_path, date_from, date_to, recursive, 
                 if is_converted == 4:
                     error_files += 1
                     error_message = markdown_content
-                    error = ConversionError(
-                        file_name=metadata['file_name'],
-                        file_path=metadata['file_path'],
-                        error_message=error_message
-                    )
-                    db.session.add(error)
+                    if existing_doc:
+                        existing_doc.status = 'failed'
+                        existing_doc.error_message = error_message
+                    else:
+                        # Even if conversion fails, we create a record to track it.
+                        new_doc = Document(
+                            file_name=metadata['file_name'],
+                            file_type=metadata['file_type'],
+                            file_size=metadata['file_size'],
+                            file_created_at=metadata['file_created_at'],
+                            file_modified_time=metadata['file_modified_time'],
+                            file_path=metadata['file_path'],
+                            content=None,
+                            conversion_type=is_converted,
+                            status='failed',
+                            error_message=error_message
+                        )
+                        db.session.add(new_doc)
                     yield from stream_log(f"Failed to convert file: {file_path}. Reason: {error_message}", 'error', stage='file_error')
                     continue
 
                 if existing_doc:
                     existing_doc.file_size = metadata['file_size']
                     existing_doc.file_modified_time = metadata['file_modified_time']
-                    existing_doc.markdown_content = markdown_content
-                    existing_doc.is_converted = is_converted
+                    existing_doc.content = markdown_content
+                    existing_doc.conversion_type = is_converted
+                    existing_doc.status = 'completed'
+                    existing_doc.error_message = None # Clear previous errors
                 else:
                     new_doc = Document(
                         file_name=metadata['file_name'],
@@ -100,15 +114,17 @@ def generate_conversion_stream(app, folder_path, date_from, date_to, recursive, 
                         file_created_at=metadata['file_created_at'],
                         file_modified_time=metadata['file_modified_time'],
                         file_path=metadata['file_path'],
-                        markdown_content=markdown_content,
-                        is_converted=is_converted,
+                        content=markdown_content,
+                        conversion_type=is_converted,
+                        status='completed'
                     )
                     db.session.add(new_doc)
                 
+                db.session.commit() # Commit after each file operation
                 processed_files += 1
                 yield from stream_log(f"Successfully processed: {file_path}", 'info', stage='file_success')
 
-            db.session.commit()
+            # The final commit is no longer needed here as we commit after each file.
             
             summary = {
                 'total_files': total_files,
@@ -139,4 +155,41 @@ def convert_stream_route():
     
     app = current_app._get_current_object()
     return Response(generate_conversion_stream(app, folder_path, date_from, date_to, recursive, file_types), mimetype='text/event-stream')
+
+@bp.route('/retry-conversion/<int:doc_id>', methods=['POST'])
+def retry_conversion(doc_id):
+    """
+    Retries the conversion for a document that previously failed.
+    """
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return jsonify({'status': 'error', 'message': 'Document not found.'}), 404
+
+    if doc.status != 'failed':
+        return jsonify({'status': 'error', 'message': 'Document is not in a failed state.'}), 400
+
+    try:
+        # Reset status to 'pending' to be picked up by a background processor
+        # or directly trigger the conversion again.
+        # For simplicity, we'll directly convert it here.
+        
+        markdown_content, conversion_type = convert_to_markdown(doc.file_path, doc.file_type)
+
+        if conversion_type == 4: # Conversion failed again
+            doc.error_message = markdown_content
+            db.session.commit()
+            return jsonify({'status': 'error', 'message': f'Retry failed: {markdown_content}'})
+        
+        # Conversion succeeded
+        doc.content = markdown_content
+        doc.conversion_type = conversion_type
+        doc.status = 'completed'
+        doc.error_message = None
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'message': 'Document successfully reconverted.'})
+
+    except Exception as e:
+        current_app.logger.error(f"Error retrying conversion for doc {doc_id}: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'An internal error occurred during retry.'}), 500
 

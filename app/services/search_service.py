@@ -6,7 +6,8 @@ import sqlalchemy as sa
 
 def search_documents(keyword, search_type='full_text', sort_by='relevance', sort_order='desc', page=1, per_page=20, file_types=None, date_from=None, date_to=None):
     """搜索文档"""
-    query = Document.query
+    # Start query by filtering for completed documents only
+    query = Document.query.filter(Document.status == 'completed')
 
     if file_types:
         query = query.filter(Document.file_type.in_(file_types))
@@ -18,10 +19,10 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
 
     if keyword:
         if search_type == 'full_text':
-            # Use the &@~ operator for web-style search on the markdown_content column.
+            # Use the &@~ operator for web-style search on the content column.
             score_col = literal_column("pgroonga_score(documents)").label("score")
             query = query.with_entities(Document, score_col)
-            query = query.filter(Document.markdown_content.op('&@~')(keyword))
+            query = query.filter(Document.content.op('&@~')(keyword))
         
         elif search_type == 'trigram':
             # NOTE: similarity() functions are not suitable for filtering short keywords in long documents in this environment.
@@ -29,7 +30,7 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
 
             # We can still calculate a similarity score for ranking the results.
             similarity_score = func.greatest(
-                func.similarity(Document.markdown_content, keyword),
+                func.similarity(Document.content, keyword),
                 func.similarity(Document.file_name, keyword)
             ).label("similarity")
             
@@ -38,7 +39,7 @@ def search_documents(keyword, search_type='full_text', sort_by='relevance', sort
             # Use a case-insensitive LIKE query to find the substring. This is fast with the GIN index.
             search_pattern = f'%{keyword}%'
             query = query.filter(
-                (Document.markdown_content.ilike(search_pattern)) |
+                (Document.content.ilike(search_pattern)) |
                 (Document.file_name.ilike(search_pattern))
             )
 
