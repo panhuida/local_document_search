@@ -10,19 +10,24 @@ def convert_to_markdown(file_path, file_type):
     """将文件转换为Markdown格式"""
     try:
         file_type_lower = file_type.lower()
+        
+        content = ""
+        conversion_type = 4  # Default to error/unsupported
+
         if file_type_lower in current_app.config.get('NATIVE_MARKDOWN_TYPES', []):
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                return f.read(), 0
+                content = f.read()
+            conversion_type = 0
         elif file_type_lower in current_app.config.get('PLAIN_TEXT_TO_MARKDOWN_TYPES', []):
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-                return f"# {os.path.basename(file_path)}\n\n{content}", 1
+                text = f.read()
+                content = f"# {os.path.basename(file_path)}\n\n{text}"
+            conversion_type = 1
         elif file_type_lower in current_app.config.get('CODE_TO_MARKDOWN_TYPES', []):
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-                return f"# {os.path.basename(file_path)}\n\n```{file_type_lower}\n{content}\n```", 2
-        
-        # --- New PDF Handling Logic with pdfplumber ---
+                text = f.read()
+                content = f"# {os.path.basename(file_path)}\n\n```{file_type_lower}\n{text}\n```"
+            conversion_type = 2
         elif file_type_lower == 'pdf':
             text_content = ""
             with pdfplumber.open(file_path) as pdf:
@@ -33,17 +38,21 @@ def convert_to_markdown(file_path, file_type):
             
             if not text_content or not text_content.strip():
                 return f"pdfplumber failed to extract any text from {file_path}", 4
-            return text_content, 3
-
+            content = text_content
+            conversion_type = 3
         elif file_type_lower in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', []):
-            # This now handles DOCX, HTML etc., but not PDF
             with open(file_path, 'rb') as f:
                 result = md.convert(f)
             if not result.text_content or not result.text_content.strip():
                 return f"Conversion resulted in empty content for {file_path}", 4
-            return result.text_content, 3
+            content = result.text_content
+            conversion_type = 3
         else:
             return f"Unsupported file type: {file_type}", 4
+
+        # Replace NUL characters from the content
+        sanitized_content = content.replace('\x00', '')
+        return sanitized_content, conversion_type
             
     except Exception as e:
         error_message = f"Converter failed for {file_path}: {e}\n{traceback.format_exc()}"
