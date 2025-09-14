@@ -136,7 +136,8 @@ def search_route():
                 'filetype': doc.file_type,
                 'filesize': doc.file_size,
                 'file_modified_time': doc.file_modified_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                'snippet': snippet
+                'snippet': snippet,
+                'source_url': doc.source_url
             }
             if score is not None:
                 result_item['relevance'] = round(score, 3)

@@ -119,7 +119,10 @@ function performSearch(page = 1) {
                         resultEl.setAttribute('onclick', `previewMarkdown(${result.id}, '${result.filename}')`);
                         
                         const fileSize = result.filesize > 1024*1024 ? `${(result.filesize/(1024*1024)).toFixed(2)} MB` : `${(result.filesize/1024).toFixed(2)} KB`;
-                        const modifiedDate = new Date(result.file_modified_time).toLocaleString();
+                        const d = new Date(result.file_modified_time);
+                        const pad = (num) => num.toString().padStart(2, '0');
+                        const modifiedDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                        const sourceUrlLink = result.source_url ? `<a href="${result.source_url}" target="_blank" class="text-xs text-blue-600 hover:underline dark:text-blue-400" onclick="event.stopPropagation()">URL</a>` : '';
 
                         resultEl.innerHTML = `
                             <h3 class="text-lg font-semibold text-blue-600 dark:text-blue-400" title="Click to preview content">
@@ -132,9 +135,12 @@ function performSearch(page = 1) {
                                     <span><b>Size:</b> ${fileSize}</span> | 
                                     <span><b>Type:</b> ${result.filetype}</span>
                                 </div>
-                                <a href="#" onclick="openLocalFile(event, '${result.filepath}')" class="text-xs text-blue-600 hover:underline dark:text-blue-400" title="Click to open original file">
-                                    Open File
-                                </a>
+                                <div class="flex items-center space-x-4">
+                                    ${sourceUrlLink}
+                                    <a href="#" onclick="openLocalFile(event, '${result.filepath}')" class="text-xs text-blue-600 hover:underline dark:text-blue-400" title="Click to open original file">
+                                        Open File
+                                    </a>
+                                </div>
                             </div>
                         `;
                         resultsContainer.appendChild(resultEl);
