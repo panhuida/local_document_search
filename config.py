@@ -6,6 +6,14 @@ from dotenv import load_dotenv
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
+
+# --- File Type Configuration (Single Source of Truth) ---
+class ConversionCategory:
+    NATIVE = 'native'
+    PLAIN_TEXT = 'plain_text'
+    CODE = 'code'
+    STRUCTURED = 'structured'
+
 class Config:
     """基础配置类"""
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY') or 'you-will-never-guess'
@@ -13,13 +21,30 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     LOG_LEVEL = logging.DEBUG if os.environ.get('FLASK_DEBUG') == '1' else logging.INFO
 
-    # 文件类型配置
-    NATIVE_MARKDOWN_TYPES = os.environ.get('NATIVE_MARKDOWN_TYPES', 'md').split(',')
-    PLAIN_TEXT_TO_MARKDOWN_TYPES = os.environ.get('PLAIN_TEXT_TO_MARKDOWN_TYPES', 'txt').split(',')
-    CODE_TO_MARKDOWN_TYPES = os.environ.get('CODE_TO_MARKDOWN_TYPES', 'sql,py').split(',')
-    LOG_TO_MARKDOWN_TYPES = os.environ.get('LOG_TO_MARKDOWN_TYPES', 'log').split(',')
-    STRUCTURED_TO_MARKDOWN_TYPES = os.environ.get('STRUCTURED_TO_MARKDOWN_TYPES', 'html,htm,pdf,docx,xlsx,pptx').split(',')
-    SUPPORTED_FILE_TYPES = os.environ.get('SUPPORTED_FILE_TYPES', 'md,html,htm,pdf,docx,xlsx,pptx,sql,py').split(',')
+    FILE_TYPE_CONFIG = {
+        # ext: {'category', 'description'}
+        'md':   {'category': ConversionCategory.NATIVE,     'description': 'Markdown'},
+        'txt':  {'category': ConversionCategory.PLAIN_TEXT,  'description': 'Plain Text'},
+        'sql':  {'category': ConversionCategory.CODE,        'description': 'SQL Script'},
+        'py':   {'category': ConversionCategory.CODE,        'description': 'Python Script'},
+        'sh':   {'category': ConversionCategory.CODE,        'description': 'Shell Script'},
+        'html': {'category': ConversionCategory.STRUCTURED,  'description': 'HTML File'},
+        'htm':  {'category': ConversionCategory.STRUCTURED,  'description': 'HTML File'},
+        'pdf':  {'category': ConversionCategory.STRUCTURED,  'description': 'PDF Document'},
+        'docx': {'category': ConversionCategory.STRUCTURED,  'description': 'Word Document'},
+        'xlsx': {'category': ConversionCategory.STRUCTURED,  'description': 'Excel Spreadsheet'},
+        'pptx': {'category': ConversionCategory.STRUCTURED,  'description': 'PowerPoint Presentation'},
+        'doc':  {'category': ConversionCategory.STRUCTURED,  'description': 'Legacy Word Document'},
+        'xls':  {'category': ConversionCategory.STRUCTURED,  'description': 'Legacy Excel Spreadsheet'},
+        'ppt':  {'category': ConversionCategory.STRUCTURED,  'description': 'Legacy PowerPoint Presentation'},
+    }
+
+    # Dynamically generate file type lists from the single source of truth
+    NATIVE_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.NATIVE]
+    PLAIN_TEXT_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.PLAIN_TEXT]
+    CODE_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.CODE]
+    STRUCTURED_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.STRUCTURED]
+    SUPPORTED_FILE_TYPES = list(FILE_TYPE_CONFIG.keys())
 
     # Joplin Configuration
     JOPLIN_API_TOKEN = os.environ.get('JOPLIN_API_TOKEN')

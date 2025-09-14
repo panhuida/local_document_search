@@ -168,5 +168,5 @@ src/.DS_Store
 
 
 # logs
-logs
+logs/
 *.log
