@@ -165,3 +165,8 @@ cython_debug/
 src/.DS_Store
 .DS_Store
 .cursorrules
+
+
+# logs
+logs
+*.log
