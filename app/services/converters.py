@@ -1,11 +1,83 @@
 import os
+import re
+import json
+import zipfile
 import traceback
+from typing import List
+from xml.etree import ElementTree as ET
 from flask import current_app
 from markitdown import MarkItDown
 from app.models import ConversionType
 
 # Initialize markitdown instance
 _md = MarkItDown()
+
+class XMindLoader:
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+
+    def get_content(self):
+        with zipfile.ZipFile(self.file_path) as zf:
+            namelist = zf.namelist()
+            if "content.json" in namelist:
+                content_json = zf.read("content.json").decode("utf-8")
+                return json.loads(content_json), "json"
+            elif "content.xml" in namelist:
+                content_xml = zf.read("content.xml").decode("utf-8")
+                content_xml = re.sub(r'\sxmlns(:\w+)?="[^"]+"', "", content_xml)
+                content_xml = re.sub(r'\b\w+:(\w+)=(["\"][^"\"]*["\"])', r"\1=\2", content_xml)
+                root = ET.fromstring(content_xml)
+                return root, "xml"
+            else:
+                raise FileNotFoundError(
+                    "XMind file must contain content.json or content.xml"
+                )
+
+    @staticmethod
+    def topic2md_json(topic: dict, is_root: bool = False, depth: int = -1) -> str:
+        title = topic["title"].replace("\r", "").replace("\n", " ")
+        if is_root:
+            md = "# " + title + "\n\n"
+        else:
+            md = depth * "  " + "- " + title + "\n"
+        if "children" in topic:
+            for child in topic["children"]["attached"]:
+                md += XMindLoader.topic2md_json(child, depth=depth + 1)
+        return md
+
+    @staticmethod
+    def topic2md_xml(topic: ET.Element, is_root: bool = False, depth: int = -1) -> str:
+        title = topic.find("title").text.replace("\r", "").replace("\n", " ")
+        if is_root:
+            md = "# " + title + "\n\n"
+        else:
+            md = depth * "  " + "- " + title + "\n"
+        for child in topic.findall("children/topics[@type='attached']/topic"):
+            md += XMindLoader.topic2md_xml(child, depth=depth + 1)
+        return md
+
+    def load(self) -> list[str]:
+        content, format = self.get_content()
+
+        docs: List[str] = []
+        if format == "json":
+            content: List[dict]
+            for sheet in content:
+                docs.append(
+                    XMindLoader.topic2md_json(sheet["rootTopic"], is_root=True).strip(),
+                )
+
+        elif format == "xml":
+            content: ET.Element
+            for sheet in content.findall("sheet"):
+                docs.append(
+                    XMindLoader.topic2md_xml(sheet.find("topic"), is_root=True).strip(),
+                )
+
+        else:
+            raise ValueError("Invalid format")
+
+        return docs
 
 def convert_to_markdown(file_path, file_type):
     """
@@ -41,6 +113,15 @@ def convert_to_markdown(file_path, file_type):
                 conversion_type = ConversionType.CODE_TO_MD
             except (IOError, OSError) as e:
                 return f"Error reading code file: {e}", None
+        
+        elif file_type_lower in current_app.config.get('XMIND_TO_MARKDOWN_TYPES', []):
+            try:
+                loader = XMindLoader(file_path)
+                docs = loader.load()
+                content = "\n\n".join(docs)
+                conversion_type = ConversionType.XMIND_TO_MD
+            except Exception as e:
+                return f"XMind conversion failed: {e}", None
 
         elif file_type_lower in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', []):
             try:
@@ -61,3 +142,4 @@ def convert_to_markdown(file_path, file_type):
     except Exception as e:
         error_message = f"An unexpected error occurred in converter for {file_path}: {e}\n{traceback.format_exc()}"
         return error_message, None
+

@@ -8,6 +8,7 @@ class ConversionType:
     TEXT_TO_MD = 1
     CODE_TO_MD = 2
     STRUCTURED_TO_MD = 3
+    XMIND_TO_MD = 4
 
 class Document(db.Model):
     __tablename__ = 'documents'

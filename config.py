@@ -13,6 +13,7 @@ class ConversionCategory:
     PLAIN_TEXT = 'plain_text'
     CODE = 'code'
     STRUCTURED = 'structured'
+    XMIND = 'xmind'
 
 class Config:
     """基础配置类"""
@@ -40,6 +41,7 @@ class Config:
         'doc':  {'category': ConversionCategory.STRUCTURED,  'description': 'Legacy Word Document'},
         'xls':  {'category': ConversionCategory.STRUCTURED,  'description': 'Legacy Excel Spreadsheet'},
         'ppt':  {'category': ConversionCategory.STRUCTURED,  'description': 'Legacy PowerPoint Presentation'},
+        'xmind':{'category': ConversionCategory.XMIND,      'description': 'Xmind'},
     }
 
     # Dynamically generate file type lists from the single source of truth
@@ -47,6 +49,7 @@ class Config:
     PLAIN_TEXT_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.PLAIN_TEXT]
     CODE_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.CODE]
     STRUCTURED_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.STRUCTURED]
+    XMIND_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.XMIND]
     SUPPORTED_FILE_TYPES = list(FILE_TYPE_CONFIG.keys())
 
     # Joplin Configuration

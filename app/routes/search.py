@@ -175,12 +175,26 @@ def search_route():
 @bp.route('/config/file-types', methods=['GET'])
 def get_file_types_config():
     from flask import current_app
+    
+    # A helper to create the list for a given category
+    def create_type_list(category_name):
+        config_key = f'{category_name.upper()}_TYPES'
+        types = current_app.config.get(config_key, [])
+        
+        # Use the description from the central FILE_TYPE_CONFIG
+        return [{
+            'ext': ext, 
+            'name': current_app.config['FILE_TYPE_CONFIG'].get(ext, {}).get('description', ext.upper()),
+        } for ext in types]
+
     return jsonify({
         'status': 'success',
         'data': {
-            'native_markdown_types': [{'ext': ext, 'name': f'{ext.upper()} file', 'process': 'Direct Storage'} for ext in current_app.config.get('NATIVE_MARKDOWN_TYPES', [])],
-            'code_to_markdown_types': [{'ext': ext, 'name': f'{ext.upper()} file', 'process': 'Convert to Code Block'} for ext in current_app.config.get('CODE_TO_MARKDOWN_TYPES', [])],
-            'structured_to_markdown_types': [{'ext': ext, 'name': f'{ext.upper()} file', 'process': 'markitdown conversion'} for ext in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', [])],
+            'native_markdown_types': create_type_list('NATIVE_MARKDOWN'),
+            'plain_text_to_markdown_types': create_type_list('PLAIN_TEXT_TO_MARKDOWN'),
+            'code_to_markdown_types': create_type_list('CODE_TO_MARKDOWN'),
+            'xmind_to_markdown_types': create_type_list('XMIND_TO_MARKDOWN'),
+            'structured_to_markdown_types': create_type_list('STRUCTURED_TO_MARKDOWN'),
             'conversion_info': {
                 'target_format': 'Markdown',
                 'ai_agent_ready': True,
