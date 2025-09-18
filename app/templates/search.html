@@ -17,6 +17,9 @@
                     </div>
                     <input type="search" id="keyword" name="keyword" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter keywords and press Enter...">
                 </div>
+                <select id="source_filter" name="source_filter" class="p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <option value="" selected>All Sources</option>
+                </select>
                 <select id="search_type" name="search_type" class="p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                     <option value="full_text" selected>全文检索（PGroonga）</option>
                     <option value="trigram">模糊检索（Trigram）</option>
@@ -104,6 +107,7 @@
 // The old script is compatible with the new structure.
 const searchForm = document.getElementById('search-form');
 const keywordInput = document.getElementById('keyword');
+const sourceFilterSelect = document.getElementById('source_filter');
 const searchTypeSelect = document.getElementById('search_type');
 const resultsContainer = document.getElementById('results-container');
 const resultsSummary = document.getElementById('results-summary');
@@ -111,6 +115,24 @@ const paginationContainer = document.getElementById('pagination-container');
 const modal = document.getElementById('preview-modal');
 const modalTitle = document.getElementById('modal-title');
 const modalContent = document.getElementById('modal-content');
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/sources')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                data.data.forEach(source => {
+                    const option = document.createElement('option');
+                    option.value = source;
+                    option.textContent = source;
+                    sourceFilterSelect.appendChild(option);
+                });
+            } else {
+                console.error('Failed to load sources:', data.message);
+            }
+        })
+        .catch(error => console.error('Error fetching sources:', error));
+});
 
 keywordInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
@@ -122,6 +144,7 @@ keywordInput.addEventListener('keydown', function(e) {
 function performSearch(page = 1) {
     const keyword = keywordInput.value;
     const searchType = searchTypeSelect.value;
+    const source = sourceFilterSelect.value;
     if (!keyword) {
         resultsSummary.textContent = 'Please enter a keyword to search.';
         resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Use the search bar above to find documents.</div>`;
@@ -132,8 +155,12 @@ function performSearch(page = 1) {
     resultsSummary.textContent = 'Searching...';
     resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Loading results...</div>`;
 
+    let apiUrl = `/api/search?keyword=${encodeURIComponent(keyword)}&search_type=${searchType}&page=${page}`;
+    if (source) {
+        apiUrl += `&source=${encodeURIComponent(source)}`;
+    }
 
-    fetch(`/api/search?keyword=${encodeURIComponent(keyword)}&search_type=${searchType}&page=${page}`)
+    fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
             resultsContainer.innerHTML = '';
@@ -161,6 +188,8 @@ function performSearch(page = 1) {
                             <div class="text-sm text-gray-700 dark:text-gray-300 mt-2">${result.snippet}</div>
                             <div class="flex items-center justify-between mt-3">
                                 <div class="text-xs text-gray-400 dark:text-gray-500 flex items-center min-w-0">
+                                    <span class="whitespace-nowrap"><b>Source:</b> ${result.source}</span>
+                                    <span class="mx-2">|</span>
                                     <span class="whitespace-nowrap"><b>Modified:</b> ${modifiedDate}</span>
                                     <span class="mx-2">|</span>
                                     <span class="whitespace-nowrap"><b>Size:</b> ${fileSize}</span>

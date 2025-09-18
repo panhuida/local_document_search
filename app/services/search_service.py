@@ -21,6 +21,7 @@ class SearchParams:
     file_types: Optional[List[str]] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+    source: Optional[str] = None
 
 def search_documents(params: SearchParams):
     """搜索文档"""
@@ -37,6 +38,9 @@ def search_documents(params: SearchParams):
         query = query.filter(Document.file_modified_time >= params.date_from)
     if params.date_to:
         query = query.filter(Document.file_modified_time <= params.date_to)
+
+    if params.source:
+        query = query.filter(Document.source == params.source)
 
     if params.keyword:
         if params.search_type == 'full_text':

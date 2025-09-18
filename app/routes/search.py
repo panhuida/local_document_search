@@ -6,6 +6,7 @@ import re
 from flask import Blueprint, request, jsonify, current_app
 from app.services.search_service import search_documents, SearchParams
 from markdown_it import MarkdownIt
+from app.extensions import db
 
 bp = Blueprint('search', __name__, url_prefix='/api')
 
@@ -95,11 +96,13 @@ def search_route():
         file_types = request.args.get('file_types')
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
+        source = request.args.get('source')
 
         logger.info(
             f"Search request received. Keyword: '{keyword}', Type: '{search_type}', "
             f"Sort: '{sort_by}'/'{sort_order}', Page: {page}, PerPage: {per_page}, "
-            f"FileTypes: '{file_types}', DateFrom: '{date_from}', DateTo: '{date_to}'"
+            f"FileTypes: '{file_types}', DateFrom: '{date_from}', DateTo: '{date_to}', "
+            f"Source: '{source}'"
         )
 
         if file_types:
@@ -114,7 +117,8 @@ def search_route():
             per_page=per_page,
             file_types=file_types,
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
+            source=source
         )
 
         pagination = search_documents(params=search_params)
@@ -139,6 +143,7 @@ def search_route():
                 'filesize': doc.file_size,
                 'file_modified_time': doc.file_modified_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'snippet': snippet,
+                'source': doc.source,
                 'source_url': doc.source_url
             }
             if score is not None:
@@ -242,3 +247,20 @@ def open_file():
     except Exception as e:
         current_app.logger.error(f"Failed to open file {path}: {e}")
         return jsonify({'status': 'error', 'message': f'Failed to open file: {e}'}), 500
+
+@bp.route('/sources', methods=['GET'])
+def get_sources():
+    from app.models import Document
+    try:
+        sources = db.session.query(Document.source).distinct().all()
+        source_list = [source[0] for source in sources if source[0]]
+        return jsonify({
+            'status': 'success',
+            'data': source_list
+        })
+    except Exception as e:
+        current_app.logger.error("An error occurred while fetching sources.", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': 'An error occurred while fetching sources.'
+        }), 500
