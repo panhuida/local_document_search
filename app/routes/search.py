@@ -200,6 +200,18 @@ def get_file_types_config():
             'name': current_app.config['FILE_TYPE_CONFIG'].get(ext, {}).get('description', ext.upper()),
         } for ext in types]
 
+    from app.models import ConversionType
+    conversion_type_labels = {
+        ConversionType.DIRECT: 'Native Markdown',
+        ConversionType.TEXT_TO_MD: 'Plain Text',
+        ConversionType.CODE_TO_MD: 'Source Code',
+        ConversionType.STRUCTURED_TO_MD: 'Structured (Office/PDF)',
+        ConversionType.XMIND_TO_MD: 'XMind Mindmap',
+        ConversionType.IMAGE_TO_MD: 'Image (OCR+Caption)',
+        ConversionType.VIDEO_METADATA: 'Video Metadata',
+        ConversionType.DRAWIO_TO_MD: 'Draw.io Diagram'
+    }
+
     return jsonify({
         'status': 'success',
         'data': {
@@ -211,6 +223,7 @@ def get_file_types_config():
             'image_to_markdown_types': create_type_list('IMAGE_TO_MARKDOWN'),
             'video_to_markdown_types': create_type_list('VIDEO_TO_MARKDOWN'),
             'drawio_to_markdown_types': create_type_list('DRAWIO_TO_MARKDOWN'),
+            'conversion_type_labels': conversion_type_labels,
             'conversion_info': {
                 'target_format': 'Markdown',
                 'ai_agent_ready': True,

@@ -1,90 +1,110 @@
 import os
 import traceback
 from flask import current_app
-from markitdown import MarkItDown
 from .provider_factory import get_markitdown_instance
 from .video_converter import convert_video_metadata
 from .drawio_converter import convert_drawio_to_markdown
 from .image_converter import convert_image_to_markdown
 from .xmind_converter import convert_xmind_to_markdown
+from .conversion_result import ConversionResult
+from . import registry
 from app.models import ConversionType
 
-_local_md_cache = None
 
-def convert_to_markdown(file_path, file_type):
-    """
-    Converts a file to Markdown format with fine-grained error handling.
-    Returns a tuple of (content, conversion_type).
-    On failure, returns (error_message, None).
-    """
-    file_type_lower = file_type.lower()
-    
+# ------------ Individual Handlers (each returns ConversionResult) -------------
+
+def _read_native_markdown(path: str, file_type: str) -> ConversionResult:
     try:
-        if file_type_lower in current_app.config.get('NATIVE_MARKDOWN_TYPES', []):
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-                conversion_type = ConversionType.DIRECT
-            except (IOError, OSError) as e:
-                return f"Error reading native markdown file: {e}", None
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        return ConversionResult(True, content, ConversionType.DIRECT, file_path=path, file_type=file_type).sanitized()
+    except (IOError, OSError) as e:
+        return ConversionResult(False, None, None, error=f"Read markdown failed: {e}", file_path=path, file_type=file_type)
 
-        elif file_type_lower in current_app.config.get('PLAIN_TEXT_TO_MARKDOWN_TYPES', []):
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    text = f.read()
-                content = f"# {os.path.basename(file_path)}\n\n{text}"
-                conversion_type = ConversionType.TEXT_TO_MD
-            except (IOError, OSError) as e:
-                return f"Error reading plain text file: {e}", None
+def _read_plain_text(path: str, file_type: str) -> ConversionResult:
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            text = f.read()
+        content = f"# {os.path.basename(path)}\n\n{text}"
+        return ConversionResult(True, content, ConversionType.TEXT_TO_MD, file_path=path, file_type=file_type).sanitized()
+    except (IOError, OSError) as e:
+        return ConversionResult(False, None, None, error=f"Read text failed: {e}", file_path=path, file_type=file_type)
 
-        elif file_type_lower in current_app.config.get('CODE_TO_MARKDOWN_TYPES', []):
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    text = f.read()
-                content = f"# {os.path.basename(file_path)}\n\n```{file_type_lower}\n{text}\n```"
-                conversion_type = ConversionType.CODE_TO_MD
-            except (IOError, OSError) as e:
-                return f"Error reading code file: {e}", None
-        
-        elif file_type_lower in current_app.config.get('XMIND_TO_MARKDOWN_TYPES', []):
-            content, conversion_type = convert_xmind_to_markdown(file_path)
-            if conversion_type is None:
-                return content, None
+def _read_code(path: str, file_type: str) -> ConversionResult:
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            text = f.read()
+        content = f"# {os.path.basename(path)}\n\n```{file_type.lower()}\n{text}\n```"
+        return ConversionResult(True, content, ConversionType.CODE_TO_MD, file_path=path, file_type=file_type).sanitized()
+    except (IOError, OSError) as e:
+        return ConversionResult(False, None, None, error=f"Read code failed: {e}", file_path=path, file_type=file_type)
 
-        elif file_type_lower in current_app.config.get('IMAGE_TO_MARKDOWN_TYPES', []):
-            content, conversion_type = convert_image_to_markdown(file_path)
-            if conversion_type is None:
-                return content, None
+def _convert_xmind(path: str, file_type: str) -> ConversionResult:
+    content, ctype = convert_xmind_to_markdown(path)
+    if ctype is None:
+        return ConversionResult(False, None, None, error=content, file_path=path, file_type=file_type)
+    return ConversionResult(True, content, ctype, file_path=path, file_type=file_type).sanitized()
 
-        elif file_type_lower in current_app.config.get('VIDEO_TO_MARKDOWN_TYPES', []):
-            content, conversion_type = convert_video_metadata(file_path)
-            if conversion_type is None:
-                return content, None
+def _convert_image(path: str, file_type: str) -> ConversionResult:
+    content, ctype = convert_image_to_markdown(path)
+    if ctype is None:
+        return ConversionResult(False, None, None, error=content, file_path=path, file_type=file_type)
+    return ConversionResult(True, content, ctype, file_path=path, file_type=file_type).sanitized()
 
-        elif file_type_lower in current_app.config.get('DRAWIO_TO_MARKDOWN_TYPES', []):
-            content, conversion_type = convert_drawio_to_markdown(file_path)
-            if conversion_type is None:
-                return content, None
+def _convert_video(path: str, file_type: str) -> ConversionResult:
+    content, ctype = convert_video_metadata(path)
+    if ctype is None:
+        return ConversionResult(False, None, None, error=content, file_path=path, file_type=file_type)
+    return ConversionResult(True, content, ctype, file_path=path, file_type=file_type).sanitized()
 
-        elif file_type_lower in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', []):
-            try:
-                # Structured 文档与图片 caption provider 无关，用一个本地 MarkItDown 实例即可
-                structured_md = get_markitdown_instance('local')
-                with open(file_path, 'rb') as f:
-                    result = structured_md.convert(f)
-                if not result.text_content or not result.text_content.strip():
-                    return f"Markitdown conversion resulted in empty content for {file_path}", None
-                content = result.text_content
-                conversion_type = ConversionType.STRUCTURED_TO_MD
-            except Exception as e:
-                return f"Markitdown conversion failed: {e}", None
-        else:
-            return f"Unsupported file type: {file_type}", None
+def _convert_drawio(path: str, file_type: str) -> ConversionResult:
+    content, ctype = convert_drawio_to_markdown(path)
+    if ctype is None:
+        return ConversionResult(False, None, None, error=content, file_path=path, file_type=file_type)
+    return ConversionResult(True, content, ctype, file_path=path, file_type=file_type).sanitized()
 
-        sanitized_content = content.replace('\x00', '')
-        return sanitized_content, conversion_type
-        
+def _convert_structured(path: str, file_type: str) -> ConversionResult:
+    try:
+        structured_md = get_markitdown_instance('local')
+        with open(path, 'rb') as f:
+            result = structured_md.convert(f)
+        if not result.text_content or not result.text_content.strip():
+            return ConversionResult(False, None, None, error=f"Empty structured conversion for {path}", file_path=path, file_type=file_type)
+        return ConversionResult(True, result.text_content, ConversionType.STRUCTURED_TO_MD, file_path=path, file_type=file_type).sanitized()
     except Exception as e:
-        error_message = f"An unexpected error occurred in converter for {file_path}: {e}\n{traceback.format_exc()}"
-        return error_message, None
+        return ConversionResult(False, None, None, error=f"Structured conversion failed: {e}", file_path=path, file_type=file_type)
+
+
+def _bootstrap_registry():
+    cfg = current_app.config
+    # map config lists to handlers
+    mapping = [
+        (cfg.get('NATIVE_MARKDOWN_TYPES', []), _read_native_markdown),
+        (cfg.get('PLAIN_TEXT_TO_MARKDOWN_TYPES', []), _read_plain_text),
+        (cfg.get('CODE_TO_MARKDOWN_TYPES', []), _read_code),
+        (cfg.get('XMIND_TO_MARKDOWN_TYPES', []), _convert_xmind),
+        (cfg.get('IMAGE_TO_MARKDOWN_TYPES', []), _convert_image),
+        (cfg.get('VIDEO_TO_MARKDOWN_TYPES', []), _convert_video),
+        (cfg.get('DRAWIO_TO_MARKDOWN_TYPES', []), _convert_drawio),
+        (cfg.get('STRUCTURED_TO_MARKDOWN_TYPES', []), _convert_structured),
+    ]
+    for exts, handler in mapping:
+        if not exts:  # pragma: no cover - defensive
+            continue
+        registry.register(list(exts))(handler)
+
+_BOOTSTRAPPED = False
+
+def convert_to_markdown(file_path: str, file_type: str) -> ConversionResult:
+    global _BOOTSTRAPPED
+    try:
+        if not _BOOTSTRAPPED:
+            _bootstrap_registry()
+            _BOOTSTRAPPED = True
+        handler = registry.get_handler(file_type)
+        if not handler:
+            return ConversionResult(False, None, None, error=f"Unsupported file type: {file_type}", file_path=file_path, file_type=file_type)
+        return handler(file_path, file_type)
+    except Exception as e:
+        return ConversionResult(False, None, None, error=f"Unexpected error: {e}\n{traceback.format_exc()}", file_path=file_path, file_type=file_type)
 

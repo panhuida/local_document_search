@@ -66,43 +66,44 @@ def convert_stream_route():
 
 @bp.route('/convert/stop', methods=['POST'])
 def stop_conversion():
-    """Endpoint to request cancellation of current ingestion."""
+    """Request cancellation of a specific ingestion session.
+
+    Body JSON: {"session_id": "..."}
+    """
+    data = request.get_json(silent=True) or {}
+    session_id = data.get('session_id')
+    if not session_id:
+        return jsonify({'status': 'error', 'message': 'session_id is required'}), 400
     try:
-        request_cancel_ingestion()
-        return jsonify({'status': 'success', 'message': 'Cancellation requested.'})
+        ok = request_cancel_ingestion(session_id)
+        if not ok:
+            return jsonify({'status': 'error', 'message': 'Session not found or already ended'}), 404
+        return jsonify({'status': 'success', 'message': f'Cancellation requested for session {session_id}.'})
     except Exception as e:
         current_app.logger.error(f"Error requesting cancellation: {e}")
         return jsonify({'status': 'error', 'message': 'Failed to request cancellation.'}), 500
 
 @bp.route('/retry-conversion/<int:doc_id>', methods=['POST'])
 def retry_conversion(doc_id):
-    """
-    Retries the conversion for a document that previously failed.
-    """
+    """Retry conversion using new ConversionResult structure."""
     doc = Document.query.get(doc_id)
     if not doc:
         return jsonify({'status': 'error', 'message': 'Document not found.'}), 404
-
     if doc.status != 'failed':
         return jsonify({'status': 'error', 'message': 'Document is not in a failed state.'}), 400
-
     try:
-        content, conversion_type = convert_to_markdown(doc.file_path, doc.file_type)
-
-        if conversion_type is None: # Conversion failed again
-            doc.error_message = content # content is the error message
+        result = convert_to_markdown(doc.file_path, doc.file_type)
+        if not result.success:
+            doc.error_message = result.error
+            doc.status = 'failed'
             db.session.commit()
-            return jsonify({'status': 'error', 'message': f'Retry failed: {content}'})
-        
-        # Conversion succeeded
-        doc.markdown_content = content
-        doc.conversion_type = conversion_type
+            return jsonify({'status': 'error', 'message': f'Retry failed: {result.error}'})
+        doc.markdown_content = result.content
+        doc.conversion_type = result.conversion_type
         doc.status = 'completed'
         doc.error_message = None
         db.session.commit()
-
         return jsonify({'status': 'success', 'message': 'Document successfully reconverted.'})
-
     except Exception as e:
         current_app.logger.error(f"Error retrying conversion for doc {doc_id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'An internal error occurred during retry.'}), 500
