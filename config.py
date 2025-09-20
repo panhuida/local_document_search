@@ -109,3 +109,6 @@ class Config:
     GEMINI_IMAGE_MODEL = os.environ.get('GEMINI_IMAGE_MODEL', os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash'))
     # Whether to include YAML front matter for image conversions (local OCR now, future: all providers)
     ENABLE_IMAGE_FRONT_MATTER = os.environ.get('ENABLE_IMAGE_FRONT_MATTER', 'true').lower() in ('1', 'true', 'yes', 'on')
+    # Provider fallback chain (e.g. "openai,google-genai,local"). If empty -> use IMAGE_CAPTION_PROVIDER only
+    RAW_IMAGE_PROVIDER_CHAIN = os.environ.get('IMAGE_PROVIDER_CHAIN', '').strip()
+    IMAGE_PROVIDER_CHAIN = [p.strip().lower() for p in RAW_IMAGE_PROVIDER_CHAIN.split(',') if p.strip()] if RAW_IMAGE_PROVIDER_CHAIN else []

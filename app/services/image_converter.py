@@ -126,11 +126,27 @@ def _llm_image_convert(file_path: str, provider: str):
     return result.text_content, ConversionType.IMAGE_TO_MD
 
 def convert_image_to_markdown(file_path: str):
-    provider = current_app.config.get('IMAGE_CAPTION_PROVIDER', 'google-genai').lower()
-    try:
-        if provider == 'local':
-            return _local_ocr_convert(file_path)
-        else:
+    primary = current_app.config.get('IMAGE_CAPTION_PROVIDER', 'google-genai').lower()
+    chain = current_app.config.get('IMAGE_PROVIDER_CHAIN', []) or []
+    # 若链为空，只尝试 primary
+    providers = chain if chain else [primary]
+    # 确保 primary 在链首（避免用户 chain 不含 primary）
+    if primary not in providers:
+        providers = [primary] + providers
+    tried_errors = []
+    for idx, provider in enumerate(providers, start=1):
+        try:
+            if provider == 'local':
+                current_app.logger.info(f"[ProviderFallback] attempt={idx} provider=local mode=ocr file={os.path.basename(file_path)}")
+                return _local_ocr_convert(file_path)
+            current_app.logger.info(f"[ProviderFallback] attempt={idx} provider={provider} mode=llm file={os.path.basename(file_path)}")
             return _llm_image_convert(file_path, provider)
-    except Exception as e:  # pragma: no cover
-        return f"Image OCR/caption extraction failed ({provider}): {e}", None
+        except Exception as e:  # pragma: no cover
+            err_msg = f"provider={provider} error={e}"
+            tried_errors.append(err_msg)
+            current_app.logger.warning(f"[ProviderFallback] failed attempt={idx} {err_msg}")
+            continue
+    # 全部失败 -> 返回聚合错误
+    aggregate = '; '.join(tried_errors) if tried_errors else 'no providers attempted'
+    current_app.logger.error(f"[ProviderFallback] all_failed file={os.path.basename(file_path)} errors={aggregate}")
+    return f"Image OCR/caption extraction failed: {aggregate}", None

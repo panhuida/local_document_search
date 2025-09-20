@@ -118,6 +118,31 @@ python run.py
   python scripts/import_joplin.py --full
   ```
 
+### 4. 图片描述 Provider 链式降级 (IMAGE_PROVIDER_CHAIN)
+
+支持为图片语义描述配置多 provider 降级链。例如：
+
+```
+IMAGE_CAPTION_PROVIDER=google-genai
+IMAGE_PROVIDER_CHAIN=openai,google-genai,local
+```
+
+执行顺序：按照 `IMAGE_PROVIDER_CHAIN` 顺序逐个尝试；若链为空，则仅使用 `IMAGE_CAPTION_PROVIDER`。若 `IMAGE_CAPTION_PROVIDER` 不在链中，会被自动插入到链首，确保首选优先。
+
+日志示例：
+```
+[ProviderFallback] attempt=1 provider=openai mode=llm file=img1.png
+[ProviderFallback] failed attempt=1 provider=openai error=...OpenAIError...
+[ProviderFallback] attempt=2 provider=google-genai mode=llm file=img1.png
+```
+
+全部失败时：
+```
+[ProviderFallback] all_failed file=img1.png errors=provider=openai error=...; provider=google-genai error=...
+```
+
+提示：将 `local` 置于链末可在外部 API 不可用时仍回退到本地 OCR（若安装了 Pillow + pytesseract）。
+
 ### 4. 搜索文档
 处理完成后，访问主页 (`/`) 或搜索页 (`/search`)，即可查找已处理过的所有文档。
 
