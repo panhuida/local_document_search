@@ -17,3 +17,4 @@ google-genai
 pytesseract
 pillow
 openai
+pytest

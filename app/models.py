@@ -10,6 +10,7 @@ class ConversionType:
     STRUCTURED_TO_MD = 3
     XMIND_TO_MD = 4
     IMAGE_TO_MD = 5
+    VIDEO_METADATA = 6
 
 class Document(db.Model):
     __tablename__ = 'documents'

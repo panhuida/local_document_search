@@ -15,6 +15,7 @@ class ConversionCategory:
     STRUCTURED = 'structured'
     XMIND = 'xmind'
     IMAGE = 'image'
+    VIDEO = 'video'
 
 class Config:
     """基础配置类"""
@@ -48,6 +49,11 @@ class Config:
         'jpeg': {'category': ConversionCategory.IMAGE,       'description': 'JPEG Image'},
         'bmp':  {'category': ConversionCategory.IMAGE,       'description': 'Bitmap Image'},
         'gif':  {'category': ConversionCategory.IMAGE,       'description': 'GIF Image'},
+        # Video
+        'mp4':  {'category': ConversionCategory.VIDEO,       'description': 'MP4 Video'},
+        'mkv':  {'category': ConversionCategory.VIDEO,       'description': 'Matroska Video'},
+        'mov':  {'category': ConversionCategory.VIDEO,       'description': 'QuickTime Video'},
+        'webm': {'category': ConversionCategory.VIDEO,       'description': 'WebM Video'},
     }
 
     # Dynamically generate file type lists from the single source of truth
@@ -57,6 +63,7 @@ class Config:
     STRUCTURED_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.STRUCTURED]
     XMIND_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.XMIND]
     IMAGE_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.IMAGE]
+    VIDEO_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.VIDEO]
     SUPPORTED_FILE_TYPES = list(FILE_TYPE_CONFIG.keys())
 
     # Joplin Configuration

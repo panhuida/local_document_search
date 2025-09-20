@@ -9,6 +9,7 @@ from flask import current_app
 from markitdown import MarkItDown
 from .gemini_adapter import build_markitdown_with_gemini
 from .openai_adapter import build_markitdown_with_openai
+from .video_converter import convert_video_metadata
 from app.models import ConversionType
 
 # Lazy initialized provider-specific MarkItDown instances
@@ -279,6 +280,11 @@ def convert_to_markdown(file_path, file_type):
                 conversion_type = ConversionType.IMAGE_TO_MD
             except Exception as e:
                 return f"Image OCR/caption extraction failed ({provider}): {e}", None
+
+        elif file_type_lower in current_app.config.get('VIDEO_TO_MARKDOWN_TYPES', []):
+            content, conversion_type = convert_video_metadata(file_path)
+            if conversion_type is None:
+                return content, None
 
         elif file_type_lower in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', []):
             try:

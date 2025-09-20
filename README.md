@@ -144,6 +144,44 @@ ocr_lang: OCR 使用的语言 (由 TESSERACT_LANG 指定, 默认 eng)
 
 未来计划：加入可选配置以关闭 front matter，及图片 caption 缓存机制。
 
+### 6. 视频文件元数据占位转换 (实验性)
+
+当前已对常见视频格式 (`.mp4`, `.mkv`, `.mov`, `.webm`) 支持“元数据 -> Markdown 占位”模式：
+
+```
+---
+source_file: demo.mp4
+provider: video-metadata
+hash_sha256: ...
+file_size_bytes: 1234567
+modified_time: 2025-09-20T12:34:56.789012
+video:
+  format_name: mov,mp4,m4a,3gp,3g2,mj2
+  duration_seconds: 734.2
+  duration_human: 12:14.200
+  bit_rate: 1234567
+  video_codec: h264
+  audio_codec: aac
+  width: 1920
+  height: 1080
+  avg_frame_rate: 30/1
+  nb_streams: 2
+file_size_human: 1.18 MB
+---
+# demo.mp4
+
+(视频元数据占位，尚未生成转录内容)
+```
+
+实现方式：调用系统 `ffprobe`（来自 FFmpeg）。如果未安装，转换会返回错误信息。后续计划：
+- 集成本地/云端 ASR 生成字幕与章节
+- 场景分割与关键帧 OCR
+- 多模态摘要（可选 LLM）
+- 缓存与增量更新（基于 hash）
+
+可配置项预留（未来）：
+`VIDEO_TRANSCRIPT_PROVIDER`, `VIDEO_ASR_MODEL`, `VIDEO_SCENE_DETECT`, `VIDEO_KEYFRAME_OCR` 等。
+
 ## 🏗️ 项目结构
 
 ```
