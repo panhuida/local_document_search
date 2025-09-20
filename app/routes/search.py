@@ -108,6 +108,9 @@ def search_route():
 
         if file_types:
             file_types = file_types.split(',')
+            # 归一化为小写并去空
+            file_types = [ft.strip().lower() for ft in file_types if ft.strip()]
+        logger.debug(f"Parsed file_types list: {file_types}")
         conversion_types = None
         if conversion_types_param:
             try:
@@ -223,6 +226,7 @@ def get_file_types_config():
             'image_to_markdown_types': create_type_list('IMAGE_TO_MARKDOWN'),
             'video_to_markdown_types': create_type_list('VIDEO_TO_MARKDOWN'),
             'drawio_to_markdown_types': create_type_list('DRAWIO_TO_MARKDOWN'),
+            'file_type_labels': {ext: current_app.config['FILE_TYPE_CONFIG'][ext]['description'] for ext in current_app.config['FILE_TYPE_CONFIG']},
             'conversion_type_labels': conversion_type_labels,
             'conversion_info': {
                 'target_format': 'Markdown',

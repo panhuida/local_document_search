@@ -20,6 +20,20 @@
                 <select id="conversion_type_filter" name="conversion_type_filter" class="p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                     <option value="" selected>All Conversion Types</option>
                 </select>
+                <div class="relative">
+                    <button type="button" id="file_type_dropdown_btn" class="p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white flex items-center gap-1">
+                        File Types
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="file_type_dropdown" class="hidden absolute z-20 mt-2 w-64 max-h-72 overflow-y-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 space-y-1 text-sm">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 px-1">File Types</div>
+                        <div id="file_type_list" class="space-y-1"></div>
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-600 flex gap-2">
+                            <button type="button" id="file_type_clear" class="flex-1 py-1 text-xs bg-gray-100 dark:bg-gray-600 rounded hover:bg-gray-200 dark:hover:bg-gray-500">Clear</button>
+                            <button type="button" id="file_type_apply" class="flex-1 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Apply</button>
+                        </div>
+                    </div>
+                </div>
                 <select id="source_filter" name="source_filter" class="p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                     <option value="" selected>All Sources</option>
                 </select>
@@ -112,6 +126,14 @@ const searchForm = document.getElementById('search-form');
 const keywordInput = document.getElementById('keyword');
 const sourceFilterSelect = document.getElementById('source_filter');
 const conversionTypeFilter = document.getElementById('conversion_type_filter');
+// File type multi-select elements
+let fileTypeCache = {};
+let selectedFileTypes = new Set();
+const fileTypeBtn = document.getElementById('file_type_dropdown_btn');
+const fileTypeDropdown = document.getElementById('file_type_dropdown');
+const fileTypeList = document.getElementById('file_type_list');
+const fileTypeClearBtn = document.getElementById('file_type_clear');
+const fileTypeApplyBtn = document.getElementById('file_type_apply');
 const searchTypeSelect = document.getElementById('search_type');
 const resultsContainer = document.getElementById('results-container');
 const resultsSummary = document.getElementById('results-summary');
@@ -152,6 +174,50 @@ document.addEventListener('DOMContentLoaded', function() {
         opt.textContent = label;
         conversionTypeFilter.appendChild(opt);
     });
+
+    // Load file types config
+    fetch('/api/config/file-types')
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const labels = data.data.file_type_labels || {};
+                fileTypeCache = labels;
+                renderFileTypeList();
+            }
+        }).catch(e => console.error('Error fetching file types:', e));
+});
+
+function renderFileTypeList() {
+    fileTypeList.innerHTML = '';
+    const entries = Object.entries(fileTypeCache).sort((a,b)=>a[0].localeCompare(b[0]));
+    entries.forEach(([ext, label]) => {
+        const id = `ft_${ext}`;
+        const wrapper = document.createElement('label');
+        wrapper.className = 'flex items-center gap-2 px-1 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
+        wrapper.innerHTML = `<input type="checkbox" data-ext="${ext}" id="${id}" class="file-type-checkbox" ${selectedFileTypes.has(ext)?'checked':''}> <span class="text-gray-800 dark:text-gray-200 text-xs">${ext} <span class="text-gray-400">(${label})</span></span>`;
+        fileTypeList.appendChild(wrapper);
+    });
+}
+
+fileTypeBtn.addEventListener('click', ()=>{
+    fileTypeDropdown.classList.toggle('hidden');
+});
+document.addEventListener('click', (e)=>{
+    if (!fileTypeDropdown.classList.contains('hidden')) {
+        if (!fileTypeDropdown.contains(e.target) && !fileTypeBtn.contains(e.target)) {
+            fileTypeDropdown.classList.add('hidden');
+        }
+    }
+});
+fileTypeClearBtn.addEventListener('click', ()=>{
+    selectedFileTypes.clear();
+    renderFileTypeList();
+});
+fileTypeApplyBtn.addEventListener('click', ()=>{
+    // collect selected
+    selectedFileTypes = new Set(Array.from(document.querySelectorAll('.file-type-checkbox:checked')).map(cb=>cb.getAttribute('data-ext')));
+    fileTypeDropdown.classList.add('hidden');
+    performSearch();
 });
 
 keywordInput.addEventListener('keydown', function(e) {
@@ -162,10 +228,19 @@ keywordInput.addEventListener('keydown', function(e) {
 });
 
 function performSearch(page = 1) {
+    // 自动关闭文件类型下拉
+    if (!fileTypeDropdown.classList.contains('hidden')) {
+        fileTypeDropdown.classList.add('hidden');
+    }
     const keyword = keywordInput.value;
     const searchType = searchTypeSelect.value;
     const source = sourceFilterSelect.value;
     const conversionType = conversionTypeFilter.value;
+    // 动态读取最新勾选（防止未点击 Apply 的场景）
+    const dynamicChecked = Array.from(document.querySelectorAll('.file-type-checkbox:checked')).map(cb=>cb.getAttribute('data-ext'));
+    // 若用户在下拉内勾选但未点 Apply，也生效
+    const merged = new Set([...selectedFileTypes, ...dynamicChecked]);
+    const fileTypesParam = Array.from(merged).join(',');
     if (!keyword) {
         resultsSummary.textContent = 'Please enter a keyword to search.';
         resultsContainer.innerHTML = `<div class="p-12 text-center text-gray-500 dark:text-gray-400">Use the search bar above to find documents.</div>`;
@@ -179,6 +254,7 @@ function performSearch(page = 1) {
     let apiUrl = `/api/search?keyword=${encodeURIComponent(keyword)}&search_type=${searchType}&page=${page}`;
     if (source) apiUrl += `&source=${encodeURIComponent(source)}`;
     if (conversionType) apiUrl += `&conversion_types=${encodeURIComponent(conversionType)}`;
+    if (fileTypesParam) apiUrl += `&file_types=${encodeURIComponent(fileTypesParam)}`;
 
     fetch(apiUrl)
         .then(response => response.json())
