@@ -74,6 +74,30 @@ class Config:
     DRAWIO_TO_MARKDOWN_TYPES = [ext for ext, props in FILE_TYPE_CONFIG.items() if props['category'] == ConversionCategory.DIAGRAM]
     SUPPORTED_FILE_TYPES = list(FILE_TYPE_CONFIG.keys())
 
+    # --- Ordering Configuration for Import Page (moved from frontend) ---
+    # Category keys must match the *_TYPES naming used in /config/file-types response.
+    FILE_CATEGORY_ORDER = [
+        'structured_to_markdown_types',        
+        'native_markdown_types',    
+        'xmind_to_markdown_types',  
+        'drawio_to_markdown_types',       
+        'image_to_markdown_types', 
+        'video_to_markdown_types',                    
+        'html_to_markdown_types',             
+        'plain_text_to_markdown_types',
+        'code_to_markdown_types'
+    ]
+
+    # Optional ordering of file extensions within specific categories.
+    # Keys are category names (same as above); values are lists defining the desired order.
+    # Extensions not listed will appear after, keeping their original order.
+    FILE_TYPE_ORDER = {
+        'code_to_markdown_types': ['py', 'sql', 'sh'],
+        'structured_to_markdown_types': ['pdf','docx','xlsx','pptx','doc','xls','ppt'],
+        'image_to_markdown_types': ['png','jpg','jpeg','gif','bmp'],
+        'html_to_markdown_types': ['html','htm']
+    }
+
     # Joplin Configuration
     JOPLIN_API_TOKEN = os.environ.get('JOPLIN_API_TOKEN')
     JOPLIN_API_URL = os.environ.get('JOPLIN_API_URL', 'http://localhost:41184')

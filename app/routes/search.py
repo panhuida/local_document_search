@@ -216,18 +216,47 @@ def get_file_types_config():
         ConversionType.HTML_TO_MD: 'HTML Document',
     }
 
-    return jsonify({
+    # Build initial category mapping
+    raw_categories = {
+        'native_markdown_types': create_type_list('NATIVE_MARKDOWN'),
+        'plain_text_to_markdown_types': create_type_list('PLAIN_TEXT_TO_MARKDOWN'),
+        'code_to_markdown_types': create_type_list('CODE_TO_MARKDOWN'),
+        'structured_to_markdown_types': create_type_list('STRUCTURED_TO_MARKDOWN'),
+        'html_to_markdown_types': create_type_list('HTML_TO_MARKDOWN'),
+        'xmind_to_markdown_types': create_type_list('XMIND_TO_MARKDOWN'),
+        'image_to_markdown_types': create_type_list('IMAGE_TO_MARKDOWN'),
+        'video_to_markdown_types': create_type_list('VIDEO_TO_MARKDOWN'),
+        'drawio_to_markdown_types': create_type_list('DRAWIO_TO_MARKDOWN'),
+    }
+
+    category_order_cfg = current_app.config.get('FILE_CATEGORY_ORDER', [])
+    file_type_order_cfg = current_app.config.get('FILE_TYPE_ORDER', {})
+
+    present_keys = list(raw_categories.keys())
+    ordered_categories = [k for k in category_order_cfg if k in present_keys] + [k for k in present_keys if k not in category_order_cfg]
+
+    # Apply per-category file type ordering
+    for cat_key, ordered_ext_list in file_type_order_cfg.items():
+        if cat_key in raw_categories:
+            # map ext -> object
+            mapping = {item['ext']: item for item in raw_categories[cat_key]}
+            ordered_objs = []
+            for ext in ordered_ext_list:
+                obj = mapping.pop(ext, None)
+                if obj:
+                    ordered_objs.append(obj)
+            # append remaining in original order
+            for item in raw_categories[cat_key]:
+                if item['ext'] in mapping:
+                    ordered_objs.append(item)
+                    mapping.pop(item['ext'], None)
+            raw_categories[cat_key] = ordered_objs
+
+    payload = {
         'status': 'success',
         'data': {
-            'native_markdown_types': create_type_list('NATIVE_MARKDOWN'),
-            'plain_text_to_markdown_types': create_type_list('PLAIN_TEXT_TO_MARKDOWN'),
-            'code_to_markdown_types': create_type_list('CODE_TO_MARKDOWN'),
-            'xmind_to_markdown_types': create_type_list('XMIND_TO_MARKDOWN'),
-            'structured_to_markdown_types': create_type_list('STRUCTURED_TO_MARKDOWN'),
-            'html_to_markdown_types': create_type_list('HTML_TO_MARKDOWN'),
-            'image_to_markdown_types': create_type_list('IMAGE_TO_MARKDOWN'),
-            'video_to_markdown_types': create_type_list('VIDEO_TO_MARKDOWN'),
-            'drawio_to_markdown_types': create_type_list('DRAWIO_TO_MARKDOWN'),
+            **raw_categories,
+            'ordered_categories': ordered_categories,
             'file_type_labels': {ext: current_app.config['FILE_TYPE_CONFIG'][ext]['description'] for ext in current_app.config['FILE_TYPE_CONFIG']},
             'conversion_type_labels': conversion_type_labels,
             'conversion_info': {
@@ -236,7 +265,8 @@ def get_file_types_config():
                 'unified_search': True
             }
         }
-    })
+    }
+    return jsonify(payload)
 
 @bp.route('/preview/markdown/<int:document_id>', methods=['GET'])
 def get_markdown_preview(document_id):

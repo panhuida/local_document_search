@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
+from app.i18n import t
 from app.services.cleanup_service import find_orphan_files
 from app.models import Document
 from app.extensions import db
@@ -42,13 +43,14 @@ def delete_orphans():
     doc_ids_to_delete = data.get('ids')
 
     if not doc_ids_to_delete:
-        return jsonify({'status': 'error', 'message': '没有提供要删除的文档ID。'}), 400
+        return jsonify({'status': 'error', 'message': t('cleanup.api.no_ids')}), 400
 
     try:
         num_deleted = db.session.query(Document).filter(Document.id.in_(doc_ids_to_delete)).delete(synchronize_session=False)
         db.session.commit()
-        flash(f'成功删除了 {num_deleted} 条孤儿文件记录。', 'success')
-        return jsonify({'status': 'success', 'message': f'成功删除了 {num_deleted} 条记录。'})
+        # Flash message (already has frontend i18n key variant; backend flash kept for server-rendered fallback)
+        flash(t('cleanup.flash.delete_success').replace('{count}', str(num_deleted)), 'success')
+        return jsonify({'status': 'success', 'message': t('cleanup.api.deleted').replace('{count}', str(num_deleted))})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'status': 'error', 'message': f'删除过程中发生错误: {str(e)}'}), 500
+        return jsonify({'status': 'error', 'message': t('cleanup.api.delete_error_prefix') + str(e)}), 500

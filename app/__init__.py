@@ -1,9 +1,10 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
-from flask import Flask
+from flask import Flask, g, request
 from config import Config
 from app.extensions import db, migrate
+from app.i18n import supported_lang, t
 from app.routes import convert, search, main, cleanup, wechat
 
 
@@ -14,6 +15,58 @@ def create_app(config_class=Config):
     # 初始化扩展
     db.init_app(app)
     migrate.init_app(app, db)
+
+    @app.before_request
+    def _detect_lang():
+        """Language resolution order:
+        1. Explicit query parameter `?lang=` if supported
+        2. Cookie 'lang' if supported
+        3. Accept-Language header (first matching zh / en)
+        4. Fallback: zh
+        """
+        # 1. Query parameter override
+        param_lang = request.args.get('lang')
+        if param_lang and supported_lang(param_lang):
+            g.lang = param_lang
+            return
+
+        # 2. Cookie
+        cookie_lang = request.cookies.get('lang')
+        if cookie_lang and supported_lang(cookie_lang):
+            g.lang = cookie_lang
+            return
+
+        # 3. Accept-Language header simple parse (no full q-value weighting needed for zh/en)
+        header = request.headers.get('Accept-Language', '')
+        selected = None
+        if header:
+            # Split on commas, take order priority; inspect language-range before optional ;q=
+            for part in header.split(','):
+                lang_range = part.split(';', 1)[0].strip().lower()
+                if lang_range.startswith('zh'):
+                    selected = 'zh'
+                    break
+                if lang_range.startswith('en'):
+                    selected = 'en'
+                    break
+        g.lang = selected if selected else 'zh'
+
+    @app.after_request
+    def _persist_lang(resp):
+        # Ensure a cookie is set so subsequent navigations need not re-parse Accept-Language
+        current = getattr(g, 'lang', 'zh')
+        existing = request.cookies.get('lang')
+        if current and current != existing:
+            resp.set_cookie('lang', current, max_age=60*60*24*365, path='/')
+        return resp
+
+    @app.context_processor
+    def _inject_i18n():
+        current = getattr(g, 'lang', 'zh')
+        return {
+            't': t,
+            'current_lang': current,
+        }
 
     # 注册蓝图
     app.register_blueprint(main.bp)

@@ -72,6 +72,7 @@ def convert_stream_route():
         def async_gen():
             with app.app_context():
                 # Emit immediate session_info-like notice so client knows session id quickly
+                # Initial session info event
                 yield f"data: {json.dumps({'level':'info','message':f'Session started: {session_id}','stage':'session_info','session_id':session_id})}\n\n"
                 for evt in stream_async_session(session_id):
                     yield f"data: {json.dumps(evt)}\n\n"

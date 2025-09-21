@@ -1,29 +1,39 @@
 {% extends 'base.html' %}
 
-{% block title %}Process Documents{% endblock %}
+{% block title %}{{ page_title or t('page.import.title') }}{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
-    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Process & Import Documents</h1>
-
-    <!-- Settings Card -->
+    <!-- Main Card with Title inside header -->
     <div class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-xl overflow-hidden">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Scan Settings</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure the folder path and filters for document processing.</p>
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-3">
+            <h1 class="heading-1">{{ t('page.import.title') }}</h1>
+            <h2 class="heading-2">{{ t('import.scan.settings') }}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('import.scan.settings.desc') }}</p>
         </div>
         <div class="p-6 space-y-6">
             <!-- Single Folder Path (legacy single session) -->
-            <div>
-                <label for="folder_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Folder Path</label>
-                <div class="flex rounded-md shadow-sm">
-                    <input type="text" id="folder_path" class="flex-1 block w-full rounded-none rounded-l-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:border-blue-500 focus:ring-blue-500" placeholder="Select or input a folder path">
-                    <button id="browse_button" type="button" class="relative -ml-px inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-r-md text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                        <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <div class="relative" id="folder-path-wrapper">
+                <label for="folder_path" class="block text-lg font-medium text-gray-800 dark:text-gray-100 mb-1">{{ t('import.folder_path') }}</label>
+                <div class="flex rounded-lg shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-blue-500 transition group">
+                    <input type="text" id="folder_path" class="flex-1 block w-full rounded-l-lg border-0 bg-white/70 dark:bg-gray-700/70 backdrop-blur-sm px-4 py-2 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 text-sm md:text-base" placeholder="{{ t('import.placeholder.select_folder') }}">
+                    <button id="browse_button" type="button" class="relative -ml-px btn btn-md btn-primary rounded-r-lg border-l border-gray-200 dark:border-gray-500">
+                        <svg class="h-5 w-5 text-white/80" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         </svg>
-                        <span>Browse</span>
+                        <span>{{ t('import.browse') }}</span>
                     </button>
+                </div>
+                <!-- Recent dropdown -->
+                <div id="recent-dropdown" class="hidden absolute z-20 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+                    <div class="flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50">
+                        <span>{{ t('import.recent.title') }}</span>
+                        <div class="flex gap-2">
+                            <button id="clear-history" type="button" class="text-gray-500 hover:text-red-600 dark:hover:text-red-400">{{ t('import.recent.clear') }}</button>
+                        </div>
+                    </div>
+                    <ul id="recent-list" class="max-h-60 overflow-y-auto text-sm divide-y divide-gray-100 dark:divide-gray-700"></ul>
+                    <div id="recent-empty" class="p-3 text-xs text-gray-400 dark:text-gray-500">{{ t('import.recent.empty') }}</div>
                 </div>
             </div>
 
@@ -36,29 +46,29 @@
                         <input id="recursive" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" checked>
                     </div>
                     <div class="ml-3 text-sm">
-                        <label for="recursive" class="font-medium text-gray-700 dark:text-gray-300">Recursive Scan</label>
-                        <p class="text-gray-500 dark:text-gray-400">Scan all subdirectories within the path.</p>
+                        <label for="recursive" class="font-medium text-gray-700 dark:text-gray-300">{{ t('import.recursive') }}</label>
+                        <p class="text-gray-500 dark:text-gray-400">{{ t('import.recursive.desc') }}</p>
                     </div>
                 </div>
                 <!-- Date From -->
                 <div>
-                    <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modified After</label>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('import.modified_after') }}</label>
                     <input type="date" id="date_from" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <!-- Date To -->
                 <div>
-                    <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Modified Before</label>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('import.modified_before') }}</label>
                     <input type="date" id="date_to" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
             </div>
 
             <!-- File Types -->
             <div>
-                <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100">File Types</h3>
+                <h3 class="text-lg font-medium text-gray-800 dark:text-gray-100">{{ t('import.file_types') }}</h3>
                 <div class="mt-2 flex gap-3 text-sm">
-                    <button id="select-all-types" type="button" class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">Select All</button>
-                    <button id="deselect-all-types" type="button" class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">Deselect All</button>
-                    <button id="invert-types" type="button" class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">Invert</button>
+                    <button id="select-all-types" type="button" class="btn btn-sm btn-outline">{{ t('import.file_types.select_all') }}</button>
+                    <button id="deselect-all-types" type="button" class="btn btn-sm btn-outline">{{ t('import.file_types.deselect_all') }}</button>
+                    <button id="invert-types" type="button" class="btn btn-sm btn-outline">{{ t('import.file_types.invert') }}</button>
                 </div>
                 <div id="file-types" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
             </div>
@@ -66,14 +76,14 @@
         <div class="p-6 bg-gray-50 dark:bg-gray-800/50 text-right">
             <div class="flex gap-4 justify-end items-center">
                 <div id="session-indicator" class="text-xs text-gray-500 dark:text-gray-400 hidden select-all"></div>
-                <button id="start-scan" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-600">
-                    Start Processing
+                <button id="start-scan" class="btn btn-md btn-primary shadow-sm">
+                    {{ t('import.start') }}
                 </button>
-                <button id="stop-scan" disabled class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-700">
-                    Stop
+                <button id="stop-scan" disabled class="btn btn-md btn-danger shadow-sm">
+                    {{ t('import.stop') }}
                 </button>
-                <button id="stop-all" disabled class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-700 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-red-800 dark:hover:bg-red-900 dark:focus:ring-red-900">
-                    Stop All
+                <button id="stop-all" disabled class="btn btn-md btn-danger shadow-sm" style="background:#b91c1c;">
+                    {{ t('import.stop_all') }}
                 </button>
             </div>
         </div>
@@ -82,14 +92,14 @@
     <!-- Results Card -->
     <div id="results-card" class="bg-white dark:bg-gray-800 shadow-lg dark:shadow-none rounded-xl overflow-hidden hidden">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Processing Log</h2>
+            <h2 class="heading-2">{{ t('import.log.title') }}</h2>
         </div>
         <!-- Progress -->
         <div id="progress" class="p-6 hidden">
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full">
                 <div id="progress-bar" class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full transition-all duration-500" style="width: 0%">0%</div>
             </div>
-            <div id="progress-text" class="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">Starting...</div>
+            <div id="progress-text" class="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">{{ t('import.progress.initializing') }}</div>
         </div>
         <!-- Log Area -->
         <div id="log-container" class="p-6 bg-gray-100 dark:bg-gray-900/50 h-96 overflow-y-auto custom-scrollbar hidden">
@@ -102,6 +112,55 @@
 </div>
 
 <script>
+    // Prepare front-end i18n keys for dynamic JS messages
+    window.I18N = window.I18N || {};
+    window.I18N.import = Object.assign({}, window.I18N.import || {}, {
+        initializing: "{{ t('import.progress.initializing') }}",
+        startProcessing: "{{ t('import.start') }}",
+        processing: "{{ t('import.start.processing') }}",
+        stop: "{{ t('import.stop') }}",
+        stopAll: "{{ t('import.stop_all') }}",
+        cancelAck: "{{ t('import.progress.cancel_ack') }}",
+        cancelled: "{{ t('import.progress.cancelled') }}",
+        completed: "{{ t('import.progress.completed') }}",
+        connectionEstablished: "{{ t('events.connection_established') }}",
+        streamLost: "{{ t('events.stream_lost') }}",
+        stopRequested: "{{ t('events.stop_requested') }}",
+        stopFailed: "{{ t('events.stop_failed') }}",
+        stopError: "{{ t('events.stop_error') }}",
+        stopAllRequested: "{{ t('events.stop_all_requested') }}",
+        stopAllFailed: "{{ t('events.stop_all_failed') }}",
+        stopAllError: "{{ t('events.stop_all_error') }}",
+        alertNoFolder: "{{ t('import.alert.no_folder') }}",
+        summaryFinal: "{{ t('import.summary.final') }}",
+        summaryTotal: "{{ t('import.summary.total') }}",
+        summaryProcessed: "{{ t('import.summary.processed') }}",
+        summarySkipped: "{{ t('import.summary.skipped') }}",
+        summaryErrors: "{{ t('import.summary.errors') }}"
+    });
+    window.I18N.import.recent = {
+        title: "{{ t('import.recent.title') }}",
+        empty: "{{ t('import.recent.empty') }}",
+        clear: "{{ t('import.recent.clear') }}",
+        remove: "{{ t('import.recent.remove') }}",
+        inputClear: "{{ t('import.input.clear') }}"
+    };
+    // Conversion categories & labels (dynamic categories from API)
+    window.I18N.import.conv = {
+        native_markdown_types: "{{ t('import.conv.native_markdown') }}",
+        plain_text_to_markdown_types: "{{ t('import.conv.plain_text_to_markdown') }}",
+        code_to_markdown_types: "{{ t('import.conv.code_to_markdown') }}",
+        xmind_to_markdown_types: "{{ t('import.conv.xmind_to_markdown') }}",
+        structured_to_markdown_types: "{{ t('import.conv.structured_to_markdown') }}",
+        html_to_markdown_types: "{{ t('import.conv.html_to_markdown') }}",
+        image_to_markdown_types: "{{ t('import.conv.image_to_markdown') }}",
+        video_to_markdown_types: "{{ t('import.conv.video_to_markdown') }}",
+        drawio_to_markdown_types: "{{ t('import.conv.drawio_to_markdown') }}",
+        target_format: "{{ t('import.conv.target_format') }}",
+        ai_agent_ready: "{{ t('import.conv.ai_agent_ready') }}",
+        unified_search: "{{ t('import.conv.unified_search') }}",
+        conversion_types: "{{ t('import.conv.conversion_types') }}"
+    };
     window.AppConfig = {
         apiEndpoints: {
             browseFolder: "{{ url_for('convert.browse_folder') }}",
@@ -119,38 +178,39 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.status === 'success') {
                 const types = data.data;
                 fileTypesContainer.innerHTML = ''; // Clear existing content
-                for (const category in types) {
-                    if (category.endsWith('_types')) {
-                        const categoryName = category.replace('_types', '').replace(/_/g, ' ');
-                        // 统一格式：将 html_to_markdown_types 显示为 HTML TO MARKDOWN
-                        
-                        const title = document.createElement('div');
-                        title.className = 'col-span-full font-semibold text-gray-600 dark:text-gray-400 text-sm uppercase';
-                        title.textContent = categoryName;
-                        fileTypesContainer.appendChild(title);
 
-                        types[category].forEach(type => {
-                            const div = document.createElement('div');
-                            div.className = 'flex items-center';
+                const orderedCategoryKeys = types.ordered_categories || Object.keys(types).filter(k => k.endsWith('_types'));
 
-                            const checkbox = document.createElement('input');
-                            checkbox.id = `type-${type.ext}`;
-                            checkbox.value = type.ext;
-                            checkbox.type = 'checkbox';
-                            checkbox.className = 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded';
-                            checkbox.checked = true;
+                orderedCategoryKeys.forEach(category => {
+                    const categoryNameKey = category; // e.g., native_markdown_types
+                    const localizedCategory = window.I18N.import.conv[categoryNameKey] || category.replace('_types','').replace(/_/g,' ');
 
-                            const label = document.createElement('label');
-                            label.htmlFor = `type-${type.ext}`;
-                            label.className = 'ml-2 block text-sm text-gray-700 dark:text-gray-300';
-                            label.textContent = `${type.name} (.${type.ext})`;
-                            
-                            div.appendChild(checkbox);
-                            div.appendChild(label);
-                            fileTypesContainer.appendChild(div);
-                        });
-                    }
-                }
+                    const title = document.createElement('div');
+                    title.className = 'col-span-full font-semibold text-gray-600 dark:text-gray-400 text-sm';
+                    title.textContent = localizedCategory;
+                    fileTypesContainer.appendChild(title);
+
+                    (types[category] || []).forEach(type => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center';
+
+                        const checkbox = document.createElement('input');
+                        checkbox.id = `type-${type.ext}`;
+                        checkbox.value = type.ext;
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded';
+                        checkbox.checked = true;
+
+                        const label = document.createElement('label');
+                        label.htmlFor = `type-${type.ext}`;
+                        label.className = 'ml-2 block text-sm text-gray-700 dark:text-gray-300';
+                        label.textContent = `${type.name} (.${type.ext})`;
+
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+                        fileTypesContainer.appendChild(div);
+                    });
+                });
             }
         });
 
@@ -178,6 +238,90 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Could not open folder dialog. Make sure the backend service is running.');
             });
     });
+
+    // Recent directories feature
+    const RECENT_KEY = 'doc_import_recent_dirs';
+    const MAX_RECENT = 12;
+    const folderInput = document.getElementById('folder_path');
+    const recentDropdown = document.getElementById('recent-dropdown');
+    const toggleRecentBtn = null; // removed button trigger
+    const recentList = document.getElementById('recent-list');
+    const recentEmpty = document.getElementById('recent-empty');
+    const clearHistoryBtn = document.getElementById('clear-history');
+    const clearInputBtn = null; // removed clear button
+
+    function loadRecent() {
+        try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
+    }
+    function saveRecent(list) {
+        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+    }
+    function addRecent(path) {
+        if (!path) return;
+        let list = loadRecent();
+        // Remove duplicates (case-insensitive on Windows style paths)
+        list = list.filter(p => p.toLowerCase() !== path.toLowerCase());
+        list.unshift(path);
+        if (list.length > MAX_RECENT) list = list.slice(0, MAX_RECENT);
+        saveRecent(list);
+        renderRecent();
+    }
+    function removeRecent(path) {
+        let list = loadRecent();
+        list = list.filter(p => p !== path);
+        saveRecent(list);
+        renderRecent();
+    }
+    function clearHistory() {
+        saveRecent([]);
+        renderRecent();
+    }
+    function renderRecent() {
+        const list = loadRecent();
+        recentList.innerHTML = '';
+        if (list.length === 0) {
+            recentEmpty.classList.remove('hidden');
+        } else {
+            recentEmpty.classList.add('hidden');
+        }
+        list.forEach(p => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/60 cursor-pointer group';
+            const text = document.createElement('span');
+            text.className = 'truncate max-w-[75%]';
+            text.textContent = p;
+            const actions = document.createElement('div');
+            actions.className = 'flex items-center gap-2 opacity-0 group-hover:opacity-100 transition';
+            const rmBtn = document.createElement('button');
+            rmBtn.className = 'text-xs text-gray-400 hover:text-red-500';
+            rmBtn.title = window.I18N.import.recent.remove;
+            rmBtn.innerHTML = '&times;';
+            rmBtn.addEventListener('click', (e) => { e.stopPropagation(); removeRecent(p); });
+            actions.appendChild(rmBtn);
+            li.appendChild(text);
+            li.appendChild(actions);
+            li.addEventListener('click', () => { folderInput.value = p; toggleRecent(false); });
+            recentList.appendChild(li);
+        });
+    }
+    function toggleRecent(force) {
+        const show = typeof force === 'boolean' ? force : recentDropdown.classList.contains('hidden');
+        if (show) { renderRecent(); recentDropdown.classList.remove('hidden'); toggleRecentBtn.setAttribute('aria-expanded','true'); }
+        else { recentDropdown.classList.add('hidden'); toggleRecentBtn.setAttribute('aria-expanded','false'); }
+    }
+    // Open dropdown on input focus or click
+    folderInput.addEventListener('focus', () => toggleRecent(true));
+    folderInput.addEventListener('click', () => toggleRecent(true));
+    clearHistoryBtn.addEventListener('click', (e) => { e.stopPropagation(); clearHistory(); });
+    document.addEventListener('click', (e) => {
+        if (!document.getElementById('folder-path-wrapper').contains(e.target)) {
+            toggleRecent(false);
+        }
+    });
+    // Removed clear button logic
+
+    // Add to recent when a scan starts successfully (session established)
+    function markRecentOnSessionStart(path) { addRecent(path); }
 
     let eventSource; // single mode
     let currentSessionId = null; // single mode
@@ -214,10 +358,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     card.className = 'bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700';
                     const header = document.createElement('div');
                     header.className = 'px-4 py-2 flex justify-between items-center border-b border-gray-200 dark:border-gray-700';
-                    header.innerHTML = `<div class='text-sm font-semibold truncate max-w-xs' title='${s.folder_path}'>Dir: ${s.folder_path}</div>`;
+                    header.innerHTML = `<div class='text-sm font-semibold truncate max-w-xs' title='${s.folder_path}'>${window.I18N.import.directoryLabel || "{{ t('import.directory_label') }}"}${s.folder_path}</div>`;
                     const actions = document.createElement('div');
                     const stopBtnSingle = document.createElement('button');
-                    stopBtnSingle.textContent = 'Stop';
+                    stopBtnSingle.textContent = window.I18N.import.stop;
                     stopBtnSingle.className = 'text-xs px-2 py-1 rounded bg-red-500 text-white disabled:opacity-40';
                     stopBtnSingle.disabled = !!s.done;
                     actions.appendChild(stopBtnSingle);
@@ -260,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         };
                         es.onerror = () => {
-                            logDiv.textContent += `[CRITICAL] reconnect stream lost\n`;
+                            logDiv.textContent += `[CRITICAL] ${window.I18N.import.streamLost}\n`;
                             es.close();
                         };
                         activeBatchSessions.set(s.session_id, { eventSource: es, directory: s.folder_path, logDiv, stopBtn: stopBtnSingle });
@@ -270,12 +414,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         fetch('/api/convert/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: s.session_id }) })
                           .then(r=>r.json()).then(resp=>{
                             if (resp.status==='success') {
-                                logDiv.textContent += `[INFO] stop requested\n`;
+                                logDiv.textContent += `[INFO] ${window.I18N.import.stopRequested}\n`;
                             } else {
-                                logDiv.textContent += `[ERROR] stop failed: ${resp.message}\n`;
+                                logDiv.textContent += `[ERROR] ${window.I18N.import.stopFailed}: ${resp.message}\n`;
                             }
                           }).catch(err=>{
-                            logDiv.textContent += `[ERROR] stop error: ${err}\n`;
+                            logDiv.textContent += `[ERROR] ${window.I18N.import.stopError}: ${err}\n`;
                           });
                     });
                 });
@@ -295,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedTypes = Array.from(document.querySelectorAll('#file-types input[type=checkbox]:checked')).map(cb => cb.value);
 
         if (!folderPath) {
-            alert('Please select a folder path.');
+            alert(window.I18N.import.alertNoFolder);
             return;
         }
 
@@ -316,9 +460,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         progressBar.style.width = '0%';
         progressBar.textContent = '0%';
-        progressText.textContent = 'Initializing...';
+    progressText.textContent = window.I18N.import.initializing;
     startButton.disabled = true;
-    startButton.textContent = 'Processing...';
+    startButton.textContent = window.I18N.import.processing;
     stopBtn.disabled = false;
 
         const params = new URLSearchParams({
@@ -332,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventSource = new EventSource(window.AppConfig.apiEndpoints.convertStream + `?${params.toString()}`);
 
         eventSource.onopen = function() {
-            logOutput.innerHTML += `<span class="text-green-400">[INFO]</span> Connection established. Starting process...\n`;
+        logOutput.innerHTML += `<span class="text-green-400">[INFO]</span> ${window.I18N.import.connectionEstablished}\n`;
         };
 
         eventSource.onmessage = function(event) {
@@ -342,6 +486,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 sessionIndicator.textContent = `Session: ${currentSessionId}`;
                 sessionIndicator.classList.remove('hidden');
                 stopAllBtn.disabled = false; // At least one session active
+                // Record recent directory on first session id reception
+                markRecentOnSessionStart(document.getElementById('folder_path').value.trim());
             }
             // Debug heartbeat events (stage=debug_state) - show but lighter
             if (data.stage === 'debug_state') {
@@ -365,39 +511,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (data.stage === 'cancel_ack') {
-                progressText.textContent = '取消请求已收到 / Cancel acknowledged';
-                logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> cancel_ack received.\n`;
+                progressText.textContent = window.I18N.import.cancelAck;
+                logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> ${window.I18N.import.cancelAck}\n`;
             }
 
             if (data.stage === 'cancelled') {
-                progressText.textContent = '已取消 / Cancelled';
-                logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> cancelled event received.\n`;
+                progressText.textContent = window.I18N.import.cancelled;
+                logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> ${window.I18N.import.cancelled}\n`;
             }
 
             if (data.stage === 'done') {
-                progressText.textContent = 'Completed!';
+                progressText.textContent = window.I18N.import.completed;
                 progressBar.style.width = `100%`;
                 progressBar.textContent = `100%`;
                 
                 const scanSummary = data.summary;
                 summary.innerHTML = `
-                    <h3 class="text-lg font-semibold mb-4">Final Summary</h3>
+                    <h3 class="text-lg font-semibold mb-4">${window.I18N.import.summaryFinal}</h3>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                         <div>
                             <div class="text-2xl font-bold text-gray-800 dark:text-gray-100">${scanSummary.total_files}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">Total Files</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${window.I18N.import.summaryTotal}</div>
                         </div>
                         <div>
                             <div class="text-2xl font-bold text-green-500">${scanSummary.processed_files}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">Processed</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${window.I18N.import.summaryProcessed}</div>
                         </div>
                         <div>
                             <div class="text-2xl font-bold text-yellow-500">${scanSummary.skipped_files}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">Skipped</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${window.I18N.import.summarySkipped}</div>
                         </div>
                         <div>
                             <div class="text-2xl font-bold text-red-500">${scanSummary.error_files}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">Errors</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${window.I18N.import.summaryErrors}</div>
                         </div>
                     </div>
                 `;
@@ -405,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 eventSource.close();
                 startButton.disabled = false;
-                startButton.textContent = 'Start Processing';
+                startButton.textContent = window.I18N.import.startProcessing;
                 stopBtn.disabled = true;
                 stopAllBtn.disabled = true;
                 sessionIndicator.classList.add('hidden');
@@ -414,11 +560,11 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         eventSource.onerror = function() {
-            logOutput.innerHTML += `<span class="text-red-600 font-bold">[CRITICAL]</span> Connection to server lost. Please check the backend and try again.\n`;
+            logOutput.innerHTML += `<span class="text-red-600 font-bold">[CRITICAL]</span> ${window.I18N.import.streamLost}\n`;
             logContainer.scrollTop = logContainer.scrollHeight;
             eventSource.close();
             startButton.disabled = false;
-            startButton.textContent = 'Start Processing';
+            startButton.textContent = window.I18N.import.startProcessing;
             stopBtn.disabled = true;
         };
     });
@@ -432,14 +578,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 const logOutput = document.getElementById('log-output');
                 if (data.status === 'success') {
-                    logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> Stop requested. Waiting for current file to finish...\n`;
+                    logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> ${window.I18N.import.stopRequested}\n`;
                 } else {
-                    logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> Stop request failed: ${data.message}\n`;
+                    logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> ${window.I18N.import.stopFailed}: ${data.message}\n`;
                 }
             })
             .catch(err => {
                 const logOutput = document.getElementById('log-output');
-                logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> Stop request error: ${err}\n`;
+                logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> ${window.I18N.import.stopError}: ${err}\n`;
             });
     });
 
@@ -450,14 +596,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 const logOutput = document.getElementById('log-output');
                 if (data.status === 'success') {
-                    logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> Stop-All requested. Sessions: ${(data.sessions || []).join(', ')}\n`;
+                    logOutput.innerHTML += `<span class="text-yellow-400">[INFO]</span> ${window.I18N.import.stopAllRequested}${(data.sessions || []).join(', ')}\n`;
                 } else {
-                    logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> Stop-All failed: ${data.message}\n`;
+                    logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> ${window.I18N.import.stopAllFailed}: ${data.message}\n`;
                 }
             })
             .catch(err => {
                 const logOutput = document.getElementById('log-output');
-                logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> Stop-All request error: ${err}\n`;
+                logOutput.innerHTML += `<span class="text-red-400">[ERROR]</span> ${window.I18N.import.stopAllError}: ${err}\n`;
             });
     });
 

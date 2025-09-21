@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, current_app
+from app.i18n import t
 from app.models import Document
 
 bp = Blueprint('main', __name__)
@@ -9,9 +10,8 @@ def index():
 
 @bp.route('/process')
 def convert_page():
-    # This route is now handled by the 'convert' blueprint.
-    # This is kept for backward compatibility of bookmarks, but should be removed later.
-    return render_template('convert.html')
+    # Backward compatibility; real logic in convert blueprint.
+    return render_template('convert.html', page_title=t('page.import.title'))
 
 @bp.route('/search')
 def search_page():

@@ -1,4 +1,4 @@
-# 本地文档智能搜索系统
+# 本地文档搜索系统
 
 > 把“分散在本地硬盘 / Joplin / 微信公众号抓取 / 图片 / 视频 / 思维导图 / Draw.io 图表”的知识统一加工为 *Markdown 语料层*，并提供毫秒级检索、结构化预览与可拓展的多模态增强。
 
@@ -257,6 +257,73 @@ ocr_lang: OCR 使用的语言 (由 TESSERACT_LANG 指定, 默认 eng)
 ### 8. 视频文件元数据占位转换 (实验性)
 
 当前已对常见视频格式 (`.mp4`, `.mkv`, `.mov`, `.webm`) 支持“元数据 -> Markdown 占位”模式：
+
+## 🌐 界面多语言 (简体中文 / English)
+
+系统内置一个轻量级自定义 i18n 机制，无第三方依赖：
+
+### 1. 语言判定优先级
+1. URL 查询参数 `?lang=zh|en`
+2. 浏览器 Cookie `lang`
+3. 默认语言：`zh`
+
+访问示例：
+```
+http://127.0.0.1:5000/search?lang=en
+http://127.0.0.1:5000/process?lang=zh
+```
+
+### 2. 切换语言
+侧边栏底部提供语言切换按钮；点击后：
+* 写入 cookie `lang=<目标语言>; max-age=31536000`
+* 用当前 URL + 新 `lang` 参数重新加载
+
+### 3. 后端翻译结构
+文件：`app/i18n.py`
+```python
+_TRANSLATIONS = {
+  'zh': { 'nav.search': '搜索', ... },
+  'en': { 'nav.search': 'Search', ... }
+}
+```
+通过上下文注入模板辅助函数：
+* `t(key)` 取翻译，不存在时回退原 key
+* `current_lang` 当前语言
+* `lang_toggle` 目标切换语言（用于按钮）
+
+### 4. 前端动态文本
+对于运行期 JS 生成的文本（如实时日志 / 搜索结果提示 / 分页按钮）：
+* 在模板头部或相关块中注入全局对象（例如 `window.SEARCH_I18N`、`window.ERROR_I18N`、`window.I18N`）。
+* JS 逻辑统一引用这些对象，避免散落硬编码。
+
+示例（搜索页分页按钮）：
+```javascript
+paginationHTML += `<a ...>${window.SEARCH_I18N.pagination.next}</a>`;
+```
+
+### 5. 新增翻译步骤
+1. 在 `app/i18n.py` 中为中英文同时添加键；命名建议：`域.子域.语义`（如 `search.results.loading` / `errors.action.retry`）。
+2. 模板中静态文本：直接 `{{ t('your.key') }}`。
+3. JS 动态文本：在模板用 Jinja 注入对象 `window.XXX = { key: "{{ t('...') }}" }`。
+4. 避免在纯 JS 发起的异步响应里再做翻译（保持前端决定语言）。
+
+### 6. 常见扩展建议
+* 若需增加语言：复制 `en` 块生成 `ja` / `fr` 等，再暴露入口。
+* 可以加一个调试开关，在 `t()` 未命中时 `console.warn('[i18n-miss]', key)`。
+* 若翻译量增大，可拆为多个模块文件并在启动时合并。
+
+### 7. 限制说明
+* 该方案是轻量级：不含复数规则 / 参数化格式化（当前使用简单 `str.replace`）。
+* 如需复杂 ICU MessageFormat，可后续引入 `babel` / `format.js`。
+
+---
+**快速检查**：
+```bash
+# 查看所有翻译 key（粗略）
+grep -R "t('" -n app/templates | head
+```
+
+如需后续：抽取未使用 key 统计 / 自动检测硬编码，可再补充辅助脚本。
 
 ```
 ---
