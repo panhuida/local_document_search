@@ -205,15 +205,15 @@ def get_file_types_config():
 
     from app.models import ConversionType
     conversion_type_labels = {
-        ConversionType.DIRECT: 'Native Markdown',
-        ConversionType.TEXT_TO_MD: 'Plain Text',
-        ConversionType.CODE_TO_MD: 'Source Code',
-        ConversionType.STRUCTURED_TO_MD: 'Structured (Office/PDF)',
-        ConversionType.XMIND_TO_MD: 'XMind Mindmap',
-        ConversionType.IMAGE_TO_MD: 'Image (OCR+Caption)',
-        ConversionType.VIDEO_METADATA: 'Video Metadata',
-        ConversionType.DRAWIO_TO_MD: 'Draw.io Diagram',
-        ConversionType.HTML_TO_MD: 'HTML Document',
+        ConversionType.DIRECT: 'Markdown',
+        ConversionType.TEXT_TO_MD: '文本',
+        ConversionType.CODE_TO_MD: '代码',
+        ConversionType.STRUCTURED_TO_MD: 'Office/PDF',
+        ConversionType.XMIND_TO_MD: '思维导图',
+        ConversionType.IMAGE_TO_MD: '图片',
+        ConversionType.VIDEO_METADATA: '视频',
+        ConversionType.DRAWIO_TO_MD: 'draw.io',
+        ConversionType.HTML_TO_MD: 'HTML',
     }
 
     # Build initial category mapping

@@ -185,36 +185,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).catch(e => console.error('Error fetching sources:', e));
 
-    // Load conversion type mapping
-    // Conversion types kept in original English (not localized per latest requirement)
-    const conversionTypeMap = {
-        0: "DIRECT",
-        1: "TEXT_TO_MD",
-        2: "CODE_TO_MD",
-        3: "STRUCTURED_TO_MD",
-        4: "XMIND_TO_MD",
-        5: "IMAGE_TO_MD",
-        6: "VIDEO_METADATA",
-        7: "DRAWIO_TO_MD",
-        8: "HTML_TO_MD"
-    };
-    Object.entries(conversionTypeMap).forEach(([val,label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        conversionTypeFilter.appendChild(opt);
-    });
-
-    // Load file types config
+    // Load file types and conversion types config
     fetch('/api/config/file-types')
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                // Populate file types for multi-select dropdown
                 const labels = data.data.file_type_labels || {};
                 fileTypeCache = labels;
                 renderFileTypeList();
+
+                // Populate conversion type filter from the same API response
+                const conversionLabels = data.data.conversion_type_labels || {};
+                Object.entries(conversionLabels).forEach(([val, label]) => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = label;
+                    conversionTypeFilter.appendChild(opt);
+                });
             }
-        }).catch(e => console.error('Error fetching file types:', e));
+        }).catch(e => console.error('Error fetching config:', e));
 });
 
 function renderFileTypeList() {

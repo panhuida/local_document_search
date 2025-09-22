@@ -13,8 +13,7 @@ beautifulsoup4
 lxml
 markdownify
 markdown-it-py[linkify]
-google-genai
-pytesseract
-pillow
-openai
-pytest
+surya-ocr
+torch
+torchvision
+timm
