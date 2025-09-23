@@ -258,23 +258,30 @@ def start_batch_ingestion():
 @bp.route('/retry-conversion/<int:doc_id>', methods=['POST'])
 def retry_conversion(doc_id):
     """Retry conversion using new ConversionResult structure."""
+    current_app.logger.info(f"Attempting to retry conversion for document ID: {doc_id}")
     doc = Document.query.get(doc_id)
     if not doc:
+        current_app.logger.warning(f"Retry failed: Document with ID {doc_id} not found.")
         return jsonify({'status': 'error', 'message': 'Document not found.'}), 404
     if doc.status != 'failed':
+        current_app.logger.warning(f"Retry skipped: Document {doc_id} is not in a failed state (current state: {doc.status}).")
         return jsonify({'status': 'error', 'message': 'Document is not in a failed state.'}), 400
     try:
+        current_app.logger.info(f"Retrying conversion for file: {doc.file_path}")
         result = convert_to_markdown(doc.file_path, doc.file_type)
         if not result.success:
             doc.error_message = result.error
             doc.status = 'failed'
             db.session.commit()
+            current_app.logger.error(f"Retry failed for document {doc_id}: {result.error}")
             return jsonify({'status': 'error', 'message': f'Retry failed: {result.error}'})
+        
         doc.markdown_content = result.content
         doc.conversion_type = result.conversion_type
         doc.status = 'completed'
         doc.error_message = None
         db.session.commit()
+        current_app.logger.info(f"Successfully retried and converted document {doc_id}.")
         return jsonify({'status': 'success', 'message': 'Document successfully reconverted.'})
     except Exception as e:
         current_app.logger.error(f"Error retrying conversion for doc {doc_id}: {e}", exc_info=True)
