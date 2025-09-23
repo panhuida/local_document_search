@@ -12,6 +12,7 @@ from app.services.conversion_result import ConversionResult
 from app.services.doc_converter import convert_doc_to_docx
 from app.services.drawio_converter import convert_drawio_to_markdown
 from app.services.ppt_converter import convert_ppt_to_pptx
+from app.services.video_converter import convert_video_metadata
 
 # Initialize markitdown instance
 _md = MarkItDown()
@@ -146,6 +147,19 @@ def convert_to_markdown(file_path, file_type) -> ConversionResult:
             except Exception as e:
                 return ConversionResult(success=False, error=f"Image OCR/metadata extraction failed: {e}", conversion_type=None, content=None)
 
+        elif file_type_lower in current_app.config.get('HTML_TO_MARKDOWN_TYPES', []):
+            try:
+                with open(file_path, 'rb') as f:
+                    result = _md.convert(f)
+                
+                if not result.text_content or not result.text_content.strip():
+                    return ConversionResult(success=False, error=f"Markitdown conversion resulted in empty content for {file_path}. Error: {getattr(result, 'error', None)}", conversion_type=None, content=None)
+                
+                content = result.text_content
+                conversion_type = ConversionType.HTML_TO_MD
+            except Exception as e:
+                return ConversionResult(success=False, error=f"HTML to Markdown conversion failed: {e}", conversion_type=None, content=None)
+
         elif file_type_lower in current_app.config.get('STRUCTURED_TO_MARKDOWN_TYPES', []):
             try:
                 if file_type_lower == 'doc':
@@ -174,6 +188,19 @@ def convert_to_markdown(file_path, file_type) -> ConversionResult:
                 conversion_type = ConversionType.STRUCTURED_TO_MD
             except Exception as e:
                 return ConversionResult(success=False, error=f"Markitdown conversion failed: {e}", conversion_type=None, content=None)
+        
+        elif file_type_lower in current_app.config.get('VIDEO_TO_MARKDOWN_TYPES', []):
+            try:
+                # convert_video_metadata returns (content, type) or (error, None)
+                content_or_error, conv_type = convert_video_metadata(file_path)
+                if conv_type is None:
+                    # This means an error occurred
+                    return ConversionResult(success=False, error=content_or_error, conversion_type=None, content=None)
+                else:
+                    # Success
+                    return ConversionResult(success=True, content=content_or_error, conversion_type=conv_type)
+            except Exception as e:
+                return ConversionResult(success=False, error=f"Video metadata extraction failed: {e}", conversion_type=None, content=None)
         
         elif file_type_lower in current_app.config.get('DRAWIO_TO_MARKDOWN_TYPES', []):
             return convert_drawio_to_markdown(file_path)
