@@ -305,16 +305,16 @@ function performSearch(page = 1) {
                             </h3>
                             <div class="text-sm text-gray-700 dark:text-gray-300 mt-2">${result.snippet}</div>
                             <div class="flex items-center justify-between mt-3">
-                                <div class="text-xs text-gray-400 dark:text-gray-500 flex items-center min-w-0">
-                                    <span class="whitespace-nowrap"><b>${window.SEARCH_I18N.result.source}:</b> ${result.source}</span>
+                                <div class="text-xs text-gray-400 dark:text-gray-500" style="word-wrap: break-word;">
+                                    <span><b>${window.SEARCH_I18N.result.source}:</b> ${result.source}</span>
                                     <span class="mx-2">|</span>
-                                    <span class="whitespace-nowrap"><b>${window.SEARCH_I18N.result.modified}:</b> ${modifiedDate}</span>
+                                    <span><b>${window.SEARCH_I18N.result.modified}:</b> ${modifiedDate}</span>
                                     <span class="mx-2">|</span>
-                                    <span class="whitespace-nowrap"><b>${window.SEARCH_I18N.result.size}:</b> ${fileSize}</span>
+                                    <span><b>${window.SEARCH_I18N.result.size}:</b> ${fileSize}</span>
                                     <span class="mx-2">|</span>
-                                    <span class="whitespace-nowrap"><b>${window.SEARCH_I18N.result.type}:</b> ${result.filetype}</span>
+                                    <span><b>${window.SEARCH_I18N.result.type}:</b> ${result.filetype}</span>
                                     <span class="mx-2">|</span>
-                                    <span class="truncate" title="${result.filepath}"><b>${window.SEARCH_I18N.result.path}:</b> ${result.filepath}</span>
+                                    <span title="${result.filepath}"><b>${window.SEARCH_I18N.result.path}:</b> ${result.filepath}</span>
                                 </div>
                                 <div class="flex items-center space-x-4">
                                     ${sourceUrlLink}
