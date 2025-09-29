@@ -135,7 +135,7 @@ class Config:
     # --- Image Caption Provider Configuration ---
     # Master switch for image description/OCR. Default changed to False; environment variable can still override.
     ENABLE_IMAGE_DESCRIPTION = os.environ.get('ENABLE_IMAGE_DESCRIPTION', 'false').lower() in ('1', 'true', 'yes', 'on')
-    # Options: local | openai | google-genai
+    # Options: local | openai | google-genai | qwen-ocr
     IMAGE_CAPTION_PROVIDER = os.environ.get('IMAGE_CAPTION_PROVIDER', 'google-genai').lower()
     # Local OCR language (for pytesseract); can be overridden by env TESSERACT_LANG
     TESSERACT_LANG = os.environ.get('TESSERACT_LANG', 'chi_sim+eng')
