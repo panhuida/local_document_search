@@ -118,8 +118,42 @@ def _llm_image_convert(file_path: str, provider: str):
     prompt_env = os.getenv('IMAGE_CAPTION_PROMPT') or os.getenv('GEMINI_PROMPT') or os.getenv('GEMINI_IMAGE_PROMPT')
     if prompt_env:
         convert_kwargs['llm_prompt'] = prompt_env
-    with open(file_path, 'rb') as f:
-        result = md_instance.convert(f, **convert_kwargs)
+    # Read bytes and normalize image format if needed (some providers/MarkItDown converters
+    # may not accept WEBP streams). Convert WEBP to PNG in-memory and pass a BytesIO with
+    # a .name attribute to help downstream detect type.
+    from io import BytesIO
+    try:
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        try:
+            from PIL import Image
+            buf = BytesIO(data)
+            img = Image.open(buf)
+            fmt = (img.format or '').upper()
+            # If WEBP (or other non-standard formats), convert to PNG bytes
+            if fmt == 'WEBP':
+                out = BytesIO()
+                img.save(out, format='PNG')
+                out.seek(0)
+                # Give a filename hint (some converters inspect file.name)
+                setattr(out, 'name', os.path.basename(file_path) + '.png')
+                result = md_instance.convert(out, **convert_kwargs)
+            else:
+                # restore buffer and pass original bytes
+                buf.seek(0)
+                setattr(buf, 'name', os.path.basename(file_path))
+                result = md_instance.convert(buf, **convert_kwargs)
+        except Exception as img_exc:
+            # If we cannot inspect/convert via PIL, log and fallback to passing raw file
+            current_app.logger.exception("Image format handling failed for %s; falling back to raw bytes: %s", file_path, img_exc)
+            from io import BytesIO as _BytesIO
+            fb = _BytesIO(data)
+            setattr(fb, 'name', os.path.basename(file_path))
+            result = md_instance.convert(fb, **convert_kwargs)
+    except Exception as e:
+        # If reading or conversion failed, re-raise to be handled by provider fallback logic
+        current_app.logger.exception("Failed to prepare image stream for LLM convert for %s: %s", file_path, e)
+        raise
     if not result.text_content or not result.text_content.strip():
         current_app.logger.warning(f"Image conversion for {file_path} resulted in empty content.")
         return f"# {os.path.basename(file_path)}\n\n", ConversionType.IMAGE_TO_MD
