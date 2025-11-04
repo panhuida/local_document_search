@@ -17,7 +17,7 @@ from collections import deque
 from app.models import WechatList, WechatArticleList
 from app.extensions import db
 from threading import Thread
-from config import Config
+from app.config import Config
 from app.services.ingestion_manager import run_local_ingestion
 from app.services.converters import convert_to_markdown
 from app.models import Document, ConversionType

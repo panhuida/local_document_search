@@ -2,7 +2,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from flask import Flask, g, request
-from config import Config
+from app.config import Config
 from app.extensions import db, migrate
 from app.i18n import supported_lang, t
 from app.routes import convert, search, main, cleanup, wechat
